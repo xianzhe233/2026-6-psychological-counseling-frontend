@@ -18,7 +18,7 @@
 
 ### 当前状态
 
-前端仓库当前处于工程开发前状态，`docs/` 已具备可指导实现的详细设计。后续应先初始化 Vue 3 工程，再按 `implementation-plan.md` 的阶段顺序开发。
+前端仓库已完成最小可启动骨架初始化，包含 Vue 3 + Vite + TypeScript、Vue Router、Naive UI Provider、Axios 基础封装、auth 状态模块、主布局、登录页和五类角色关键空路由。后续可直接在现有骨架上继续实现业务页面。
 
 ---
 
@@ -26,16 +26,16 @@
 
 ### 阶段一：基础框架
 
-- [ ] 初始化 Vite + Vue 3 工程。
-- [ ] 安装 Vue Router、Naive UI、Axios、ECharts、dayjs。
-- [ ] 配置路径别名和环境变量。
-- [ ] 创建登录页布局 `AuthLayout.vue`。
-- [ ] 创建主布局 `MainLayout.vue`。
-- [ ] 创建侧边栏 `AppSidebar.vue`。
-- [ ] 创建顶栏 `AppHeader.vue`。
-- [ ] 配置角色路由和路由守卫。
-- [ ] 封装 Axios 实例和错误处理。
-- [ ] 封装 auth 状态模块。
+- [x] 初始化 Vite + Vue 3 工程。
+- [x] 安装 Vue Router、Naive UI、Axios、ECharts、dayjs。
+- [x] 配置路径别名和环境变量。
+- [x] 创建登录页布局 `AuthLayout.vue`。
+- [x] 创建主布局 `MainLayout.vue`。
+- [x] 创建侧边栏 `AppSidebar.vue`。
+- [x] 创建顶栏 `AppHeader.vue`。
+- [x] 配置角色路由和路由守卫。
+- [x] 封装 Axios 实例和错误处理。
+- [x] 封装 auth 状态模块。
 
 ### 阶段二：学生端
 
@@ -88,7 +88,7 @@
 - [ ] 危机等级柱状图。
 - [ ] 咨询师工作量柱状图。
 - [ ] 统一空状态、加载状态、错误提示。
-- [ ] 前端构建检查。
+- [x] 前端构建检查。
 - [ ] 整理页面截图用于小组报告和答辩 PPT。
 
 ---
@@ -105,6 +105,30 @@
 ---
 
 ## 后续更新规则
+
+## 2026-06-06 前端最小骨架
+
+### 完成内容
+- 初始化 Vite + Vue 3 + TypeScript 工程。
+- 安装并接入 `vue-router`、`naive-ui`、`axios`、`echarts`、`dayjs`。
+- 创建 `AuthLayout`、`MainLayout`、`BlankLayout`。
+- 创建 `AppSidebar`、`AppHeader`、`PageHeader`、`StatusTag`、`RiskTag`。
+- 创建登录页、工作台、403/404 页面和五类角色关键空路由。
+- 配置 Vite 代理到 `http://localhost:8080`。
+
+### 影响文件
+- `package.json`
+- `vite.config.ts`
+- `src/`
+
+### 验证方式
+- `npm install`
+- `npm run build`
+- `npm run typecheck`
+- 前端 dev server 通过 `http://127.0.0.1:5174/api/health` 成功代理后端接口
+
+### 遗留问题
+- 仅完成骨架和关键空页面，学生端、管理员端、初访员端、助理端、咨询师端的业务页面仍待继续实现。
 
 每完成一个页面或公共组件，应在本文件追加记录：
 
