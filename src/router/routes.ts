@@ -76,6 +76,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, roles: ['INTERVIEWER'], title: '初访任务' }
       },
       {
+        path: 'interviewer/tasks/:id/result',
+        name: 'InterviewResultEdit',
+        component: () => import('@/views/interviewer/InterviewResultEditView.vue'),
+        meta: { requiresAuth: true, roles: ['INTERVIEWER'], title: '初访结果录入' }
+      },
+      {
         path: 'assistant/queue',
         name: 'AssistantQueue',
         component: () => import('@/views/assistant/ConsultationQueueView.vue'),
