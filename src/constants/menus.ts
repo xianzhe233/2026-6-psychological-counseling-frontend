@@ -11,7 +11,11 @@ export interface MenuItem {
 
 export const roleMenus: Record<RoleCode, MenuItem[]> = {
   STUDENT: [
+    { key: 'student-first-visit-form', label: '首访登记表', path: '/student/first-visit-form', icon: ClipboardOutline },
+    { key: 'student-consent', label: '知情同意书', path: '/student/consent', icon: ClipboardOutline },
+    { key: 'student-appointment-create', label: '初访预约', path: '/student/appointment-create', icon: CalendarOutline },
     { key: 'student-appointments', label: '我的预约', path: '/student/appointments', icon: CalendarOutline },
+    { key: 'student-notifications', label: '我的通知', path: '/student/notifications', icon: ClipboardOutline },
   ],
   ADMIN: [
     { key: 'admin-audit', label: '预约审核', path: '/admin/appointments/audit', icon: ClipboardOutline },
