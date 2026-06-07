@@ -66,6 +66,14 @@ const statusOptions = [
 
 const columns: DataTableColumns<StaffVO> = [
   { title: '工号', key: 'staffNo', width: 110 },
+  {
+    title: '登录账号',
+    key: 'username',
+    width: 140,
+    render(row) {
+      return row.username || '-'
+    },
+  },
   { title: '姓名', key: 'realName', width: 110 },
   { title: '手机号', key: 'phone', width: 130 },
   {
@@ -179,6 +187,10 @@ function handleEdit(record: StaffVO) {
 }
 
 async function handleSubmit() {
+  if (!editingStaff.value && !staffForm.username?.trim()) {
+    message.warning('请输入登录账号')
+    return
+  }
   if (!staffForm.realName.trim()) {
     message.warning('请输入姓名')
     return
@@ -253,7 +265,7 @@ onMounted(() => {
         :data="data"
         :loading="loading"
         :pagination="pagination"
-        :scroll-x="1100"
+        :scroll-x="1240"
         remote
         striped
         @update:page="handlePageChange"
@@ -264,6 +276,15 @@ onMounted(() => {
     <n-modal v-model:show="showModal" preset="card" :title="editingStaff ? '编辑工作人员' : '新增工作人员'" style="width: 720px">
       <n-form :model="staffForm" label-placement="left" label-width="100">
         <n-grid :cols="2" :x-gap="12">
+          <n-gi>
+            <n-form-item label="登录账号" :required="!editingStaff">
+              <n-input
+                v-model:value="staffForm.username"
+                :disabled="Boolean(editingStaff)"
+                :placeholder="editingStaff ? '登录账号请到用户管理页修改' : '请输入登录账号（初始密码默认为 123456）'"
+              />
+            </n-form-item>
+          </n-gi>
           <n-gi>
             <n-form-item label="姓名" required>
               <n-input v-model:value="staffForm.realName" placeholder="请输入姓名" />
