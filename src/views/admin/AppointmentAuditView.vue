@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, h } from 'vue'
 import {
   NCard,
   NDataTable,
@@ -399,7 +399,7 @@ const handleMarkPriority = async (id: number) => {
 // 确认通过
 const handleApproveConfirm = async () => {
   if (!currentAppointmentId.value) return
-  if (!approveForm.interviewerId || !approveForm.appointmentDate || !approveForm.slotId) {
+  if (approveForm.interviewerId <= 0 || !approveForm.appointmentDate || approveForm.slotId <= 0) {
     message.error('请填写必填信息')
     return
   }
@@ -451,7 +451,7 @@ const handleRejectConfirm = async () => {
 // 确认改约
 const handleRescheduleConfirm = async () => {
   if (!currentAppointmentId.value) return
-  if (!rescheduleForm.interviewerId || !rescheduleForm.appointmentDate || !rescheduleForm.slotId) {
+  if (rescheduleForm.interviewerId <= 0 || !rescheduleForm.appointmentDate || rescheduleForm.slotId <= 0) {
     message.error('请填写必填信息')
     return
   }
