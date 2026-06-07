@@ -94,6 +94,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, roles: ['ADMIN'], title: '预约审核' }
       },
       {
+        path: 'admin/statistics',
+        name: 'AdminStatistics',
+        component: () => import('@/views/admin/StatisticsView.vue'),
+        meta: { requiresAuth: true, roles: ['ADMIN'], title: '统计看板' }
+      },
+      {
         path: 'interviewer/tasks',
         name: 'InterviewerTasks',
         component: () => import('@/views/interviewer/InterviewTaskView.vue'),
