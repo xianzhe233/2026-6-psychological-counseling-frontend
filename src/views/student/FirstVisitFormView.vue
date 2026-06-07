@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NCard, NForm, NFormItem, NInput, NInputNumber, NRadioGroup, NRadio, NButton, NSpace, useMessage } from 'naive-ui'
+import { NButton, NCard, NForm, NFormItem, NInput, NInputNumber, NRadio, NRadioGroup, NSpace, useMessage } from 'naive-ui'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getLatestFirstVisitForm, saveFirstVisitForm } from '@/api/student'
 import type { FirstVisitForm, FirstVisitFormRequest } from '@/types/student'
@@ -17,11 +17,28 @@ const form = ref<FirstVisitFormRequest>({
   sleepScore: 5,
   stressScore: 5,
   selfHarmFlag: 0,
-  emergencyFlag: 0
+  emergencyFlag: 0,
 })
 
 const loading = ref(false)
 const existingForm = ref<FirstVisitForm | null>(null)
+
+function getErrorMessage(error: unknown, fallback: string) {
+  const maybeError = error as {
+    response?: { data?: { message?: string } }
+    message?: string
+  }
+  return maybeError?.response?.data?.message || maybeError?.message || fallback
+}
+
+function buildPayload(): FirstVisitFormRequest {
+  return {
+    ...form.value,
+    mainProblem: form.value.mainProblem.trim(),
+    problemDescription: form.value.problemDescription.trim(),
+    expectedHelp: form.value.expectedHelp.trim(),
+  }
+}
 
 onMounted(async () => {
   try {
@@ -30,13 +47,13 @@ onMounted(async () => {
       existingForm.value = data.data
       form.value = {
         mainProblem: data.data.mainProblem,
-        problemDescription: data.data.problemDescription,
-        expectedHelp: data.data.expectedHelp,
+        problemDescription: data.data.problemDescription ?? '',
+        expectedHelp: data.data.expectedHelp ?? '',
         moodScore: data.data.moodScore,
         sleepScore: data.data.sleepScore,
         stressScore: data.data.stressScore,
         selfHarmFlag: data.data.selfHarmFlag,
-        emergencyFlag: data.data.emergencyFlag
+        emergencyFlag: data.data.emergencyFlag,
       }
     }
   } catch (error) {
@@ -45,26 +62,37 @@ onMounted(async () => {
 })
 
 async function handleSubmit() {
-  if (!form.value.mainProblem.trim()) {
+  const payload = buildPayload()
+
+  if (!payload.mainProblem) {
     message.error('请填写主要困扰')
     return
   }
-  if (!form.value.problemDescription.trim()) {
+  if (!payload.problemDescription) {
     message.error('请填写问题详细描述')
     return
   }
-  if (!form.value.expectedHelp.trim()) {
+  if (!payload.expectedHelp) {
     message.error('请填写期望帮助')
     return
   }
 
   loading.value = true
   try {
-    await saveFirstVisitForm(form.value)
-    message.success('提交成功')
-    router.push('/student/consent')
-  } catch (error: any) {
-    message.error(error?.message || '提交失败')
+    const { data } = await saveFirstVisitForm(payload)
+    const formId = data.data?.id ?? existingForm.value?.id
+
+    message.success('登记表已提交，请继续签署知情同意书')
+    await router.push(
+      formId
+        ? {
+            path: '/student/consent',
+            query: { formId: String(formId) },
+          }
+        : '/student/consent',
+    )
+  } catch (error) {
+    message.error(getErrorMessage(error, '提交失败'))
   } finally {
     loading.value = false
   }
@@ -73,13 +101,13 @@ async function handleSubmit() {
 
 <template>
   <div class="first-visit-form-view">
-    <PageHeader title="首访登记表" description="填写基本信息以便我们了解您的情况" />
+    <PageHeader title="首访登记表" description="请如实填写，信息仅用于心理咨询服务与预约安排。" />
     <n-card class="form-card">
       <n-form label-placement="left" label-width="120">
         <n-form-item label="主要困扰" required>
           <n-input
             v-model:value="form.mainProblem"
-            placeholder="请简要描述您当前的主要困扰"
+            placeholder="请简要描述您当前最想解决的问题"
             maxlength="100"
             show-count
           />
@@ -89,8 +117,8 @@ async function handleSubmit() {
           <n-input
             v-model:value="form.problemDescription"
             type="textarea"
-            placeholder="请详细描述您遇到的问题，包括持续时间、影响等"
-            maxlength="500"
+            placeholder="可补充问题持续时间、对学习生活的影响，以及最近的变化。"
+            maxlength="1000"
             show-count
             :rows="4"
           />
@@ -100,8 +128,8 @@ async function handleSubmit() {
           <n-input
             v-model:value="form.expectedHelp"
             type="textarea"
-            placeholder="请描述您希望获得什么样的帮助"
-            maxlength="300"
+            placeholder="例如希望获得情绪支持、压力疏导或沟通建议。"
+            maxlength="500"
             show-count
             :rows="3"
           />
@@ -111,11 +139,11 @@ async function handleSubmit() {
           <n-space vertical>
             <n-input-number
               v-model:value="form.moodScore"
-              :min="1"
+              :min="0"
               :max="10"
-              placeholder="1-10分"
+              placeholder="0-10分"
             />
-            <span class="score-hint">1分表示情绪很差，10分表示情绪很好</span>
+            <span class="score-hint">0 分表示基本稳定，10 分表示当前困扰非常明显。</span>
           </n-space>
         </n-form-item>
 
@@ -123,11 +151,11 @@ async function handleSubmit() {
           <n-space vertical>
             <n-input-number
               v-model:value="form.sleepScore"
-              :min="1"
+              :min="0"
               :max="10"
-              placeholder="1-10分"
+              placeholder="0-10分"
             />
-            <span class="score-hint">1分表示睡眠很差，10分表示睡眠很好</span>
+            <span class="score-hint">0 分表示睡眠影响很小，10 分表示睡眠困扰非常明显。</span>
           </n-space>
         </n-form-item>
 
@@ -135,11 +163,11 @@ async function handleSubmit() {
           <n-space vertical>
             <n-input-number
               v-model:value="form.stressScore"
-              :min="1"
+              :min="0"
               :max="10"
-              placeholder="1-10分"
+              placeholder="0-10分"
             />
-            <span class="score-hint">1分表示压力很小，10分表示压力很大</span>
+            <span class="score-hint">0 分表示压力较小，10 分表示当前压力非常明显。</span>
           </n-space>
         </n-form-item>
 
@@ -163,7 +191,7 @@ async function handleSubmit() {
 
         <n-form-item>
           <n-button type="primary" :loading="loading" @click="handleSubmit">
-            {{ existingForm ? '更新' : '提交' }}
+            {{ existingForm ? '更新并继续' : '提交并继续' }}
           </n-button>
         </n-form-item>
       </n-form>
