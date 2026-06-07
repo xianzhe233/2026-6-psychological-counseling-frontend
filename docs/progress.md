@@ -80,11 +80,11 @@
 
 ### 阶段六：咨询师端
 
-- [ ] 我的咨询日程页面。
-- [ ] 咨询记录录入页面。
-- [ ] 追加咨询申请页面。
-- [ ] 结案报告填写页面。
-- [ ] Word 下载触发功能。
+- [x] 我的咨询日程页面。
+- [x] 咨询记录录入页面。
+- [x] 追加咨询申请页面。
+- [x] 结案报告填写页面。
+- [x] Word 下载触发功能。
 
 ### 阶段七：统计与收尾
 
@@ -245,6 +245,34 @@
 ### 遗留问题
 - 当前阶段仍为前端 mock 数据，尚未接入真实后端咨询队列和正式咨询安排接口。
 - 后续等待 PR review 后合入 `dev`。
+
+---
+
+## 2026-06-07 咨询师页面（assignment-zyt 阶段2）
+
+### 完成内容
+- 新增咨询师 mock API，支撑我的日程、咨询记录、追加申请、结案报告和 Word 下载触发。
+- 完成 `MyScheduleView`，支持日期范围、状态、学生关键词筛选，并展示学生、日期、时间段、地点、第几次和状态。
+- 新增 `ConsultationRecordEditView`，展示日程信息和学生信息，支持保存咨询状态、咨询时间、咨询摘要和后续计划。
+- 新增 `ExtensionRequestView`，支持新增追加咨询申请，并校验申请原因必填且不少于 10 字。
+- 新增 `CaseReportEditView`，支持保存草稿、二次确认后提交报告，以及触发 Word 下载提示。
+- 补齐咨询师菜单、路由和正式咨询相关状态标签。
+
+### 影响文件
+- `src/api/counselor.ts`
+- `src/components/common/StatusTag.vue`
+- `src/constants/menus.ts`
+- `src/router/routes.ts`
+- `src/views/counselor/*.vue`
+- `../assignment-zyt.md`
+
+### 验证方式
+- 编辑器诊断检查新增/修改文件无 linter 错误。
+- 待提交前复跑 `npm run typecheck`、`npm run build`。
+
+### 遗留问题
+- 当前阶段仍为前端 mock 数据，尚未接入真实后端咨询师接口。
+- 提交、推送和 PR 需在确认后按 `git-work.md` 执行。
 
 ---
 

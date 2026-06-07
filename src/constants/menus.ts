@@ -34,6 +34,8 @@ export const roleMenus: Record<RoleCode, MenuItem[]> = {
   ],
   COUNSELOR: [
     { key: 'counselor-schedules', label: '咨询日程', path: '/counselor/schedules', icon: GridOutline },
+    { key: 'counselor-extensions', label: '追加申请', path: '/counselor/extensions', icon: ClipboardOutline },
+    { key: 'counselor-case-reports', label: '结案报告', path: '/counselor/case-reports', icon: CalendarOutline },
   ],
 }
 

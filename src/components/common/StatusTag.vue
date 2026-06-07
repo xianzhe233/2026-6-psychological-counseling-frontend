@@ -16,6 +16,11 @@ const mapping: Record<string, { label: string; type: 'default' | 'info' | 'succe
   WAITING: { label: '排队中', type: 'warning' },
   ARRANGED: { label: '已安排', type: 'success' },
   DEFERRED: { label: '已暂缓', type: 'default' },
+  RESERVED: { label: '已预约', type: 'info' },
+  ABSENT: { label: '旷约', type: 'warning' },
+  LEAVE: { label: '请假', type: 'warning' },
+  DROPPED: { label: '脱落', type: 'error' },
+  CLOSED: { label: '已结案', type: 'default' },
   DRAFT: { label: '草稿', type: 'default' },
   SUBMITTED: { label: '已提交', type: 'success' }
 }
