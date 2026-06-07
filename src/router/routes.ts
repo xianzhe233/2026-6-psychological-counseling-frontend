@@ -134,6 +134,24 @@ export const routes: RouteRecordRaw[] = [
         name: 'CounselorSchedules',
         component: () => import('@/views/counselor/MyScheduleView.vue'),
         meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '咨询日程' }
+      },
+      {
+        path: 'counselor/records/:scheduleId',
+        name: 'CounselorRecordEdit',
+        component: () => import('@/views/counselor/ConsultationRecordEditView.vue'),
+        meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '咨询记录录入' }
+      },
+      {
+        path: 'counselor/extensions',
+        name: 'CounselorExtensions',
+        component: () => import('@/views/counselor/ExtensionRequestView.vue'),
+        meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '追加咨询申请' }
+      },
+      {
+        path: 'counselor/case-reports',
+        name: 'CounselorCaseReports',
+        component: () => import('@/views/counselor/CaseReportEditView.vue'),
+        meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '结案报告' }
       }
     ]
   },
