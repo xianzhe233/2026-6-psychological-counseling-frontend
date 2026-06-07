@@ -112,6 +112,18 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, roles: ['ASSISTANT'], title: '咨询队列' }
       },
       {
+        path: 'assistant/arrange',
+        name: 'AssistantArrangeEntry',
+        component: () => import('@/views/assistant/ConsultationArrangeView.vue'),
+        meta: { requiresAuth: true, roles: ['ASSISTANT'], title: '正式咨询安排' }
+      },
+      {
+        path: 'assistant/queue/:id/arrange',
+        name: 'AssistantArrange',
+        component: () => import('@/views/assistant/ConsultationArrangeView.vue'),
+        meta: { requiresAuth: true, roles: ['ASSISTANT'], title: '正式咨询安排' }
+      },
+      {
         path: 'counselor/schedules',
         name: 'CounselorSchedules',
         component: () => import('@/views/counselor/MyScheduleView.vue'),

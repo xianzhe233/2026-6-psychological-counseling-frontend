@@ -30,6 +30,7 @@ export const roleMenus: Record<RoleCode, MenuItem[]> = {
   ],
   ASSISTANT: [
     { key: 'assistant-queue', label: '咨询队列', path: '/assistant/queue', icon: PulseOutline },
+    { key: 'assistant-arrange', label: '咨询安排', path: '/assistant/arrange', icon: CalendarOutline },
   ],
   COUNSELOR: [
     { key: 'counselor-schedules', label: '咨询日程', path: '/counselor/schedules', icon: GridOutline },
