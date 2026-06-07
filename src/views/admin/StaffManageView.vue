@@ -1,49 +1,45 @@
 <script setup lang="ts">
-import { h, ref, reactive, onMounted } from 'vue'
+import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
   NCard,
   NDataTable,
   NForm,
   NFormItem,
+  NGrid,
+  NGi,
   NInput,
   NInputNumber,
+  NModal,
   NSelect,
   NSpace,
   NTag,
-  NModal,
-  NGrid,
-  NGi,
-  useMessage
+  useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-interface StaffRecord {
-  id: number
-  userId: number
-  staffNo: string
-  realName: string
-  phone: string
-  staffType: string
-  title: string
-  specialty: string
-  maxDailyAppointments: number
-  status: number
-}
+import {
+  createStaff,
+  getStaffTypeLabel,
+  pageStaff,
+  updateStaff,
+} from '@/api/admin'
+import type { StaffSaveRequest, StaffVO } from '@/api/admin'
 
 const message = useMessage()
 const loading = ref(false)
+const submitting = ref(false)
 const showModal = ref(false)
-const editingStaff = ref<StaffRecord | null>(null)
+const editingStaff = ref<StaffVO | null>(null)
 
 const searchForm = reactive({
   keyword: '',
-  staffType: '',
-  status: null as number | null
+  staffType: null as string | null,
+  status: null as number | null,
 })
 
-const staffForm = reactive({
-  userId: null as number | null,
+const staffForm = reactive<StaffSaveRequest>({
+  userId: undefined,
   username: '',
   realName: '',
   phone: '',
@@ -53,86 +49,67 @@ const staffForm = reactive({
   specialty: '',
   introduction: '',
   maxDailyAppointments: 6,
-  status: 1
+  status: 1,
 })
 
 const staffTypeOptions = [
   { label: '管理员', value: 'ADMIN' },
   { label: '初访员', value: 'INTERVIEWER' },
   { label: '心理助理', value: 'ASSISTANT' },
-  { label: '咨询师', value: 'COUNSELOR' }
+  { label: '咨询师', value: 'COUNSELOR' },
 ]
 
 const statusOptions = [
   { label: '启用', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
-const columns: DataTableColumns<StaffRecord> = [
-  { title: '工号', key: 'staffNo', width: 100 },
-  { title: '姓名', key: 'realName', width: 100 },
-  { title: '手机号', key: 'phone', width: 120 },
+const columns: DataTableColumns<StaffVO> = [
+  { title: '工号', key: 'staffNo', width: 110 },
+  { title: '姓名', key: 'realName', width: 110 },
+  { title: '手机号', key: 'phone', width: 130 },
   {
     title: '类型',
     key: 'staffType',
-    width: 100,
+    width: 110,
     render(row) {
-      const typeMap: Record<string, string> = {
-        ADMIN: '管理员',
-        INTERVIEWER: '初访员',
-        ASSISTANT: '心理助理',
-        COUNSELOR: '咨询师'
-      }
-      return h(NTag, { type: 'info' }, { default: () => typeMap[row.staffType] || row.staffType })
-    }
+      return h(NTag, { type: 'info' }, { default: () => getStaffTypeLabel(row.staffType) })
+    },
   },
-  { title: '职称', key: 'title', width: 100 },
-  { title: '擅长方向', key: 'specialty', width: 150 },
+  { title: '职称', key: 'title', width: 120 },
+  { title: '擅长方向', key: 'specialty', width: 180 },
   { title: '每日容量', key: 'maxDailyAppointments', width: 100 },
   {
     title: '状态',
     key: 'status',
-    width: 80,
+    width: 90,
     render(row) {
       return h(NTag, { type: row.status === 1 ? 'success' : 'error' }, { default: () => row.status === 1 ? '启用' : '禁用' })
-    }
+    },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 120,
+    width: 100,
+    fixed: 'right',
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' })
-        ]
-      })
-    }
-  }
+      return h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' })
+    },
+  },
 ]
 
-const data = ref<StaffRecord[]>([])
-const pagination = reactive({ page: 1, pageSize: 10, itemCount: 0 })
+const data = ref<StaffVO[]>([])
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0,
+  pageSizes: [5, 10, 20],
+  showSizePicker: true,
+})
 
-function fetchData() {
-  loading.value = true
-  // TODO: 调用API获取工作人员列表
-  setTimeout(() => {
-    data.value = []
-    pagination.itemCount = 0
-    loading.value = false
-  }, 500)
-}
-
-function handleSearch() {
-  pagination.page = 1
-  fetchData()
-}
-
-function handleAdd() {
-  editingStaff.value = null
+function resetStaffForm() {
   Object.assign(staffForm, {
-    userId: null,
+    userId: undefined,
     username: '',
     realName: '',
     phone: '',
@@ -142,48 +119,110 @@ function handleAdd() {
     specialty: '',
     introduction: '',
     maxDailyAppointments: 6,
-    status: 1
+    status: 1,
   })
+}
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const result = await pageStaff({
+      pageNum: pagination.page,
+      pageSize: pagination.pageSize,
+      keyword: searchForm.keyword,
+      staffType: searchForm.staffType ?? undefined,
+      status: searchForm.status,
+    })
+    data.value = result.records
+    pagination.itemCount = result.total
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '加载工作人员失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleSearch() {
+  pagination.page = 1
+  void fetchData()
+}
+
+function handleReset() {
+  searchForm.keyword = ''
+  searchForm.staffType = null
+  searchForm.status = null
+  handleSearch()
+}
+
+function handleAdd() {
+  editingStaff.value = null
+  resetStaffForm()
   showModal.value = true
 }
 
-function handleEdit(record: StaffRecord) {
+function handleEdit(record: StaffVO) {
   editingStaff.value = record
   Object.assign(staffForm, {
     userId: record.userId,
-    username: '',
+    username: record.username ?? '',
     realName: record.realName,
     phone: record.phone,
     staffNo: record.staffNo,
     staffType: record.staffType,
     title: record.title,
     specialty: record.specialty,
-    introduction: '',
+    introduction: record.introduction,
     maxDailyAppointments: record.maxDailyAppointments,
-    status: record.status
+    status: record.status,
   })
   showModal.value = true
 }
 
-function handleSubmit() {
-  // TODO: 调用API创建/更新工作人员
-  showModal.value = false
-  fetchData()
+async function handleSubmit() {
+  if (!staffForm.realName.trim()) {
+    message.warning('请输入姓名')
+    return
+  }
+  if (!staffForm.staffType) {
+    message.warning('请选择工作人员类型')
+    return
+  }
+  if (!staffForm.maxDailyAppointments || staffForm.maxDailyAppointments < 1) {
+    message.warning('每日容量必须大于 0')
+    return
+  }
+
+  submitting.value = true
+  try {
+    if (editingStaff.value) {
+      await updateStaff(editingStaff.value.id, staffForm)
+      message.success('工作人员信息已更新')
+    } else {
+      await createStaff(staffForm)
+      message.success('工作人员已创建')
+    }
+    showModal.value = false
+    await fetchData()
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '保存工作人员失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handlePageChange(page: number) {
   pagination.page = page
-  fetchData()
+  void fetchData()
 }
 
 function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize
   pagination.page = 1
-  fetchData()
+  void fetchData()
 }
 
 onMounted(() => {
-  fetchData()
+  void fetchData()
 })
 </script>
 
@@ -203,7 +242,8 @@ onMounted(() => {
         <n-form-item>
           <n-space>
             <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleAdd">新增工作人员</n-button>
+            <n-button @click="handleReset">重置</n-button>
+            <n-button tertiary type="primary" @click="handleAdd">新增工作人员</n-button>
           </n-space>
         </n-form-item>
       </n-form>
@@ -213,14 +253,15 @@ onMounted(() => {
         :data="data"
         :loading="loading"
         :pagination="pagination"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
+        :scroll-x="1100"
         remote
         striped
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
       />
     </n-card>
 
-    <n-modal v-model:show="showModal" preset="card" :title="editingStaff ? '编辑工作人员' : '新增工作人员'" style="width: 700px">
+    <n-modal v-model:show="showModal" preset="card" :title="editingStaff ? '编辑工作人员' : '新增工作人员'" style="width: 720px">
       <n-form :model="staffForm" label-placement="left" label-width="100">
         <n-grid :cols="2" :x-gap="12">
           <n-gi>
@@ -235,7 +276,7 @@ onMounted(() => {
           </n-gi>
           <n-gi>
             <n-form-item label="工号">
-              <n-input v-model:value="staffForm.staffNo" placeholder="请输入工号" />
+              <n-input v-model:value="staffForm.staffNo" placeholder="不填则自动生成" />
             </n-form-item>
           </n-gi>
           <n-gi>
@@ -255,7 +296,7 @@ onMounted(() => {
           </n-gi>
           <n-gi>
             <n-form-item label="每日容量">
-              <n-input-number v-model:value="staffForm.maxDailyAppointments" :min="1" placeholder="每日最大预约量" />
+              <n-input-number v-model:value="staffForm.maxDailyAppointments" :min="1" placeholder="每日最大预约量" style="width: 100%" />
             </n-form-item>
           </n-gi>
           <n-gi>
@@ -273,7 +314,7 @@ onMounted(() => {
       <template #footer>
         <n-space justify="end">
           <n-button @click="showModal = false">取消</n-button>
-          <n-button type="primary" @click="handleSubmit">确定</n-button>
+          <n-button type="primary" :loading="submitting" @click="handleSubmit">确定</n-button>
         </n-space>
       </template>
     </n-modal>

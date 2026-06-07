@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, reactive, onMounted } from 'vue'
+import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
   NCard,
@@ -8,130 +8,171 @@ import {
   NFormItem,
   NInput,
   NInputNumber,
+  NModal,
   NSelect,
   NSpace,
   NTag,
   NTimePicker,
-  NModal,
-  useMessage
+  useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-interface TimeSlotRecord {
-  id: number
-  slotName: string
-  startTime: string
-  endTime: string
-  intervalMinutes: number
-  status: number
-}
+import { createTimeSlot, pageTimeSlots, updateTimeSlot } from '@/api/admin'
+import type { TimeSlotSaveRequest, TimeSlotVO } from '@/api/admin'
 
 const message = useMessage()
 const loading = ref(false)
+const submitting = ref(false)
 const showModal = ref(false)
-const editingSlot = ref<TimeSlotRecord | null>(null)
+const editingSlot = ref<TimeSlotVO | null>(null)
 
 const slotForm = reactive({
   slotName: '',
-  startTime: '',
-  endTime: '',
+  startTime: null as string | null,
+  endTime: null as string | null,
   intervalMinutes: 10,
-  status: 1
+  status: 1,
 })
 
 const statusOptions = [
   { label: '启用', value: 1 },
-  { label: '停用', value: 0 }
+  { label: '停用', value: 0 },
 ]
 
-const columns: DataTableColumns<TimeSlotRecord> = [
-  { title: '时间段名称', key: 'slotName', width: 120 },
-  { title: '开始时间', key: 'startTime', width: 100 },
-  { title: '结束时间', key: 'endTime', width: 100 },
-  { title: '间隔分钟', key: 'intervalMinutes', width: 100 },
+const columns: DataTableColumns<TimeSlotVO> = [
+  { title: '时间段名称', key: 'slotName', width: 180 },
+  { title: '开始时间', key: 'startTime', width: 120 },
+  { title: '结束时间', key: 'endTime', width: 120 },
+  { title: '间隔分钟', key: 'intervalMinutes', width: 120 },
   {
     title: '状态',
     key: 'status',
-    width: 80,
+    width: 90,
     render(row) {
       return h(NTag, { type: row.status === 1 ? 'success' : 'error' }, { default: () => row.status === 1 ? '启用' : '停用' })
-    }
+    },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 120,
+    width: 100,
+    fixed: 'right',
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' })
-        ]
-      })
-    }
-  }
+      return h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' })
+    },
+  },
 ]
 
-const data = ref<TimeSlotRecord[]>([])
-const pagination = reactive({ page: 1, pageSize: 10, itemCount: 0 })
+const data = ref<TimeSlotVO[]>([])
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0,
+  pageSizes: [5, 10, 20],
+  showSizePicker: true,
+})
 
-function fetchData() {
+function resetSlotForm() {
+  Object.assign(slotForm, {
+    slotName: '',
+    startTime: null,
+    endTime: null,
+    intervalMinutes: 10,
+    status: 1,
+  })
+}
+
+async function fetchData() {
   loading.value = true
-  // TODO: 调用API获取时间段列表
-  setTimeout(() => {
-    data.value = []
-    pagination.itemCount = 0
+  try {
+    const result = await pageTimeSlots({
+      pageNum: pagination.page,
+      pageSize: pagination.pageSize,
+    })
+    data.value = result.records
+    pagination.itemCount = result.total
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '加载时间段失败')
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 function handleAdd() {
   editingSlot.value = null
-  Object.assign(slotForm, {
-    slotName: '',
-    startTime: '',
-    endTime: '',
-    intervalMinutes: 10,
-    status: 1
-  })
+  resetSlotForm()
   showModal.value = true
 }
 
-function handleEdit(record: TimeSlotRecord) {
+function handleEdit(record: TimeSlotVO) {
   editingSlot.value = record
   Object.assign(slotForm, {
     slotName: record.slotName,
     startTime: record.startTime,
     endTime: record.endTime,
     intervalMinutes: record.intervalMinutes,
-    status: record.status
+    status: record.status,
   })
   showModal.value = true
 }
 
-function handleSubmit() {
-  // 校验结束时间必须晚于开始时间
-  if (slotForm.startTime && slotForm.endTime && slotForm.startTime >= slotForm.endTime) {
-    message.error('结束时间必须晚于开始时间')
+async function handleSubmit() {
+  if (!slotForm.slotName.trim()) {
+    message.warning('请输入时间段名称')
     return
   }
-  // TODO: 调用API创建/更新时间段
-  showModal.value = false
-  fetchData()
+  if (!slotForm.startTime || !slotForm.endTime) {
+    message.warning('请选择开始时间和结束时间')
+    return
+  }
+  if (slotForm.startTime >= slotForm.endTime) {
+    message.warning('结束时间必须晚于开始时间')
+    return
+  }
+  if (slotForm.intervalMinutes < 1) {
+    message.warning('间隔分钟必须大于 0')
+    return
+  }
+
+  const payload: TimeSlotSaveRequest = {
+    slotName: slotForm.slotName,
+    startTime: slotForm.startTime,
+    endTime: slotForm.endTime,
+    intervalMinutes: slotForm.intervalMinutes,
+    status: slotForm.status,
+  }
+
+  submitting.value = true
+  try {
+    if (editingSlot.value) {
+      await updateTimeSlot(editingSlot.value.id, payload)
+      message.success('时间段已更新')
+    } else {
+      await createTimeSlot(payload)
+      message.success('时间段已创建')
+    }
+    showModal.value = false
+    await fetchData()
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '保存时间段失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handlePageChange(page: number) {
   pagination.page = page
-  fetchData()
+  void fetchData()
 }
 
 function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize
   pagination.page = 1
-  fetchData()
+  void fetchData()
 }
 
 onMounted(() => {
-  fetchData()
+  void fetchData()
 })
 </script>
 
@@ -147,26 +188,37 @@ onMounted(() => {
         :data="data"
         :loading="loading"
         :pagination="pagination"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
+        :scroll-x="760"
         remote
         striped
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
       />
     </n-card>
 
-    <n-modal v-model:show="showModal" preset="card" :title="editingSlot ? '编辑时间段' : '新增时间段'" style="width: 500px">
-      <n-form :model="slotForm" label-placement="left" label-width="80">
+    <n-modal v-model:show="showModal" preset="card" :title="editingSlot ? '编辑时间段' : '新增时间段'" style="width: 560px">
+      <n-form :model="slotForm" label-placement="left" label-width="90">
         <n-form-item label="时间段名称" required>
           <n-input v-model:value="slotForm.slotName" placeholder="请输入时间段名称" />
         </n-form-item>
         <n-form-item label="开始时间" required>
-          <n-time-picker v-model:value="slotForm.startTime" format="HH:mm" placeholder="选择开始时间" />
+          <n-time-picker
+            v-model:formatted-value="slotForm.startTime"
+            format="HH:mm"
+            value-format="HH:mm"
+            placeholder="选择开始时间"
+          />
         </n-form-item>
         <n-form-item label="结束时间" required>
-          <n-time-picker v-model:value="slotForm.endTime" format="HH:mm" placeholder="选择结束时间" />
+          <n-time-picker
+            v-model:formatted-value="slotForm.endTime"
+            format="HH:mm"
+            value-format="HH:mm"
+            placeholder="选择结束时间"
+          />
         </n-form-item>
         <n-form-item label="间隔分钟">
-          <n-input-number v-model:value="slotForm.intervalMinutes" :min="1" placeholder="请输入间隔分钟" />
+          <n-input-number v-model:value="slotForm.intervalMinutes" :min="1" placeholder="请输入间隔分钟" style="width: 100%" />
         </n-form-item>
         <n-form-item label="状态">
           <n-select v-model:value="slotForm.status" :options="statusOptions" />
@@ -175,7 +227,7 @@ onMounted(() => {
       <template #footer>
         <n-space justify="end">
           <n-button @click="showModal = false">取消</n-button>
-          <n-button type="primary" @click="handleSubmit">确定</n-button>
+          <n-button type="primary" :loading="submitting" @click="handleSubmit">确定</n-button>
         </n-space>
       </template>
     </n-modal>
