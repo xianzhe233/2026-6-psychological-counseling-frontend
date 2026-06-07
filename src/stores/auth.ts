@@ -48,7 +48,7 @@ export function hasRole(role: RoleCode) {
 }
 
 export function getDefaultRouteByRoles(roles: RoleCode[]) {
-  if (roles.includes('ADMIN')) return '/admin/appointments/audit'
+  if (roles.includes('ADMIN')) return '/admin/users'
   if (roles.includes('INTERVIEWER')) return '/interviewer/tasks'
   if (roles.includes('ASSISTANT')) return '/assistant/queue'
   if (roles.includes('COUNSELOR')) return '/counselor/schedules'
