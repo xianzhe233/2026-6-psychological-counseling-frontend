@@ -257,3 +257,115 @@ export function batchCreateDutySchedules(data: {
 }) {
   return http.post('/admin/duty-schedules/batch', data)
 }
+
+// 初访预约审核
+export interface AppointmentAuditQuery {
+  pageNum: number
+  pageSize: number
+  keyword?: string
+  status?: string
+  riskLevel?: string
+  startDate?: string
+  endDate?: string
+  priorityFlag?: number | null
+}
+
+export interface AppointmentAuditVO {
+  id: number
+  appointmentNo: string
+  studentNo: string
+  studentName: string
+  college?: string
+  phone?: string
+  mainProblem: string
+  riskScore: number
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  appointmentDate: string
+  slotName: string
+  interviewerName?: string
+  roomName?: string
+  appointmentStatus: string
+  priorityFlag: number
+  createTime: string
+}
+
+export interface AppointmentDetailVO {
+  id: number
+  appointmentNo: string
+  studentId: number
+  studentNo: string
+  studentName: string
+  college?: string
+  phone?: string
+  mainProblem: string
+  problemDescription?: string
+  expectedHelp?: string
+  moodScore: number
+  sleepScore: number
+  stressScore: number
+  selfHarmFlag: number
+  emergencyFlag: number
+  riskScore: number
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  appointmentDate: string
+  slotId: number
+  slotName: string
+  startTime: string
+  endTime: string
+  interviewerId?: number
+  interviewerName?: string
+  roomId?: number
+  roomName?: string
+  appointmentStatus: string
+  priorityFlag: number
+  auditRemark?: string
+  auditTime?: string
+  auditorName?: string
+  createTime: string
+}
+
+export interface ApproveAppointmentRequest {
+  dutyScheduleId: number
+  interviewerId: number
+  appointmentDate: string
+  slotId: number
+  roomId?: number
+  auditRemark?: string
+}
+
+export interface RejectAppointmentRequest {
+  reason: string
+}
+
+export interface RescheduleAppointmentRequest {
+  dutyScheduleId: number
+  interviewerId: number
+  appointmentDate: string
+  slotId: number
+  roomId?: number
+  auditRemark?: string
+}
+
+export function pageAuditAppointments(query: AppointmentAuditQuery) {
+  return http.get('/admin/first-visit/appointments', { params: query })
+}
+
+export function getAuditAppointmentDetail(id: number) {
+  return http.get(`/admin/first-visit/appointments/${id}`)
+}
+
+export function approveAppointment(id: number, data: ApproveAppointmentRequest) {
+  return http.post(`/admin/first-visit/appointments/${id}/approve`, data)
+}
+
+export function rejectAppointment(id: number, data: RejectAppointmentRequest) {
+  return http.post(`/admin/first-visit/appointments/${id}/reject`, data)
+}
+
+export function rescheduleAppointment(id: number, data: RescheduleAppointmentRequest) {
+  return http.post(`/admin/first-visit/appointments/${id}/reschedule`, data)
+}
+
+export function markPriority(id: number) {
+  return http.post(`/admin/first-visit/appointments/${id}/priority`)
+}
