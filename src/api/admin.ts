@@ -1,5 +1,13 @@
 import dayjs from 'dayjs'
 
+import {
+  applyDutyScheduleToAppointment,
+  getMockAppointmentById,
+  getMockAppointments,
+  respondMock,
+  updateMockAppointment,
+} from './mock-first-visit'
+
 export interface PageResult<T> {
   records: T[]
   total: number
@@ -959,4 +967,324 @@ export async function batchCreateDutySchedules(data: BatchCreateDutySchedulesReq
   }
 
   return respond<BatchCreateDutySchedulesResult>({ createdCount })
+}
+
+export interface AppointmentAuditQuery {
+  pageNum: number
+  pageSize: number
+  keyword?: string
+  status?: string
+  riskLevel?: string
+  startDate?: string
+  endDate?: string
+  priorityFlag?: number | null
+}
+
+export interface AppointmentAuditVO {
+  id: number
+  appointmentNo: string
+  studentNo: string
+  studentName: string
+  college?: string
+  phone?: string
+  mainProblem: string
+  riskScore: number
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  appointmentDate: string
+  slotName: string
+  interviewerName?: string
+  roomName?: string
+  appointmentStatus: string
+  priorityFlag: number
+  createTime: string
+}
+
+export interface AppointmentDetailVO extends AppointmentAuditVO {
+  studentId: number
+  problemDescription?: string
+  expectedHelp?: string
+  moodScore: number
+  sleepScore: number
+  stressScore: number
+  selfHarmFlag: number
+  emergencyFlag: number
+  slotId: number
+  startTime: string
+  endTime: string
+  interviewerId?: number
+  roomId?: number
+  dutyScheduleId?: number
+  auditRemark?: string
+  rejectReason?: string
+  auditTime?: string
+  auditorName?: string
+  latestResult?: {
+    crisisLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+    problemTypeId: number
+    problemTypeLabel: string
+    interviewTime: string
+    conclusion: 'NO_NEED' | 'ARRANGE_CONSULTATION' | 'TRANSFER'
+    summary?: string
+    nextAction?: string
+    submitTime: string
+  }
+}
+
+export interface ApproveAppointmentRequest {
+  dutyScheduleId: number
+  interviewerId: number
+  appointmentDate: string
+  slotId: number
+  roomId?: number
+  auditRemark?: string
+}
+
+export interface RejectAppointmentRequest {
+  reason: string
+}
+
+export interface RescheduleAppointmentRequest {
+  dutyScheduleId: number
+  interviewerId: number
+  appointmentDate: string
+  slotId: number
+  roomId?: number
+  auditRemark?: string
+}
+
+export interface InterviewDutyOption {
+  dutyScheduleId: number
+  interviewerId: number
+  interviewerName: string
+  appointmentDate: string
+  slotId: number
+  slotName: string
+  startTime: string
+  endTime: string
+  roomId?: number
+  roomName?: string
+  capacity: number
+  reservedCount: number
+  remaining: number
+}
+
+function getScheduleReservedCount(scheduleId: number, excludeAppointmentId?: number) {
+  const schedule = mockDutySchedules.find(item => item.id === scheduleId)
+  if (!schedule) {
+    throw new Error('未找到值班安排')
+  }
+
+  const dynamicReserved = getMockAppointments().filter(item => (
+    item.dutyScheduleId === scheduleId
+    && item.id !== excludeAppointmentId
+    && ['APPROVED', 'COMPLETED'].includes(item.appointmentStatus)
+  )).length
+
+  return Math.max(schedule.reservedCount, dynamicReserved)
+}
+
+function getInterviewDutyScheduleOrThrow(scheduleId: number, excludeAppointmentId?: number) {
+  const schedule = mockDutySchedules.find(item => item.id === scheduleId && item.staffType === 'INTERVIEWER')
+  if (!schedule) {
+    throw new Error('未找到初访员值班安排')
+  }
+
+  const reservedCount = getScheduleReservedCount(scheduleId, excludeAppointmentId)
+  return {
+    ...schedule,
+    reservedCount,
+    remaining: Math.max(schedule.capacity - reservedCount, 0),
+  }
+}
+
+function toAppointmentAuditVO(item: AppointmentDetailVO): AppointmentAuditVO {
+  return {
+    id: item.id,
+    appointmentNo: item.appointmentNo,
+    studentNo: item.studentNo,
+    studentName: item.studentName,
+    college: item.college,
+    phone: item.phone,
+    mainProblem: item.mainProblem,
+    riskScore: item.riskScore,
+    riskLevel: item.riskLevel,
+    appointmentDate: item.appointmentDate,
+    slotName: item.slotName,
+    interviewerName: item.interviewerName,
+    roomName: item.roomName,
+    appointmentStatus: item.appointmentStatus,
+    priorityFlag: item.priorityFlag,
+    createTime: item.createTime,
+  }
+}
+
+function toAppointmentDetailVO(id: number): AppointmentDetailVO {
+  const item = getMockAppointmentById(id)
+  if (!item) {
+    throw new Error('未找到预约记录')
+  }
+
+  return {
+    id: item.id,
+    appointmentNo: item.appointmentNo,
+    studentId: item.studentId,
+    studentNo: item.studentNo,
+    studentName: item.studentName,
+    college: item.college,
+    phone: item.phone,
+    mainProblem: item.mainProblem,
+    problemDescription: item.problemDescription,
+    expectedHelp: item.expectedHelp,
+    moodScore: item.moodScore,
+    sleepScore: item.sleepScore,
+    stressScore: item.stressScore,
+    selfHarmFlag: item.selfHarmFlag,
+    emergencyFlag: item.emergencyFlag,
+    riskScore: item.riskScore,
+    riskLevel: item.riskLevel,
+    appointmentDate: item.appointmentDate,
+    slotId: item.slotId,
+    slotName: item.slotName,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    interviewerId: item.interviewerId,
+    interviewerName: item.interviewerName,
+    roomId: item.roomId,
+    roomName: item.roomName,
+    dutyScheduleId: item.dutyScheduleId,
+    appointmentStatus: item.appointmentStatus,
+    priorityFlag: item.priorityFlag,
+    auditRemark: item.auditRemark,
+    rejectReason: item.rejectReason,
+    auditTime: item.auditTime,
+    auditorName: item.auditorName,
+    createTime: item.createTime,
+    latestResult: item.latestResult,
+  }
+}
+
+export async function pageAuditAppointments(query: AppointmentAuditQuery) {
+  const keyword = normalizeKeyword(query.keyword)
+  const records = getMockAppointments()
+    .filter((item) => {
+      const matchKeyword = !keyword || [item.appointmentNo, item.studentNo, item.studentName, item.college, item.mainProblem]
+        .filter(Boolean)
+        .some(value => value.toLowerCase().includes(keyword))
+      const matchStatus = !query.status || item.appointmentStatus === query.status
+      const matchRisk = !query.riskLevel || item.riskLevel === query.riskLevel
+      const matchStart = !query.startDate || item.appointmentDate >= query.startDate
+      const matchEnd = !query.endDate || item.appointmentDate <= query.endDate
+      const matchPriority = query.priorityFlag == null || item.priorityFlag === query.priorityFlag
+      return matchKeyword && matchStatus && matchRisk && matchStart && matchEnd && matchPriority
+    })
+    .map(item => toAppointmentDetailVO(item.id))
+    .sort((a, b) => {
+      if (a.priorityFlag !== b.priorityFlag) return b.priorityFlag - a.priorityFlag
+      if (a.riskScore !== b.riskScore) return b.riskScore - a.riskScore
+      return b.createTime.localeCompare(a.createTime)
+    })
+    .map(toAppointmentAuditVO)
+
+  return respondMock(paginate(records, query.pageNum, query.pageSize))
+}
+
+export async function getAuditAppointmentDetail(id: number) {
+  return respondMock(toAppointmentDetailVO(id))
+}
+
+export async function getInterviewDutyOptions(staffId?: number) {
+  const records = mockDutySchedules
+    .filter(item => item.staffType === 'INTERVIEWER' && item.status === 1)
+    .filter(item => !staffId || item.staffId === staffId)
+    .map<InterviewDutyOption>((item) => {
+      const reservedCount = getScheduleReservedCount(item.id)
+      return {
+        dutyScheduleId: item.id,
+        interviewerId: item.staffId,
+        interviewerName: item.staffName,
+        appointmentDate: item.dutyDate,
+        slotId: item.slotId,
+        slotName: item.slotName,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        roomId: item.roomId ?? undefined,
+        roomName: item.roomName,
+        capacity: item.capacity,
+        reservedCount,
+        remaining: Math.max(item.capacity - reservedCount, 0),
+      }
+    })
+    .sort((a, b) => `${a.appointmentDate}${a.startTime}`.localeCompare(`${b.appointmentDate}${b.startTime}`))
+
+  return respondMock(records)
+}
+
+export async function approveAppointment(id: number, data: ApproveAppointmentRequest) {
+  const appointment = getMockAppointmentById(id)
+  if (!appointment) {
+    throw new Error('未找到预约记录')
+  }
+  if (appointment.appointmentStatus !== 'PENDING') {
+    throw new Error('只有待处理预约才能执行通过操作')
+  }
+
+  const schedule = getInterviewDutyScheduleOrThrow(data.dutyScheduleId)
+  if (schedule.remaining < 1) {
+    throw new Error('所选值班容量已满，请选择其他时间段')
+  }
+
+  applyDutyScheduleToAppointment(id, schedule, data.auditRemark, 'APPROVED')
+  return respondMock(toAppointmentDetailVO(id))
+}
+
+export async function rejectAppointment(id: number, data: RejectAppointmentRequest) {
+  const appointment = getMockAppointmentById(id)
+  if (!appointment) {
+    throw new Error('未找到预约记录')
+  }
+  if (appointment.appointmentStatus !== 'PENDING') {
+    throw new Error('只有待处理预约才能执行驳回操作')
+  }
+  if (!data.reason.trim()) {
+    throw new Error('驳回原因不能为空')
+  }
+
+  updateMockAppointment(id, {
+    appointmentStatus: 'REJECTED',
+    rejectReason: data.reason.trim(),
+    auditRemark: data.reason.trim(),
+    auditTime: dayjs().format('YYYY-MM-DD HH:mm'),
+    auditorName: '中心管理员',
+  })
+
+  return respondMock(toAppointmentDetailVO(id))
+}
+
+export async function rescheduleAppointment(id: number, data: RescheduleAppointmentRequest) {
+  const appointment = getMockAppointmentById(id)
+  if (!appointment) {
+    throw new Error('未找到预约记录')
+  }
+  if (!['PENDING', 'APPROVED'].includes(appointment.appointmentStatus)) {
+    throw new Error('当前预约状态不支持改约')
+  }
+
+  const schedule = getInterviewDutyScheduleOrThrow(data.dutyScheduleId, appointment.id)
+  const changingToAnotherSchedule = appointment.dutyScheduleId !== schedule.dutyScheduleId
+  if (changingToAnotherSchedule && schedule.remaining < 1) {
+    throw new Error('所选值班容量已满，请选择其他时间段')
+  }
+
+  applyDutyScheduleToAppointment(id, schedule, data.auditRemark, appointment.appointmentStatus as 'PENDING' | 'APPROVED')
+  return respondMock(toAppointmentDetailVO(id))
+}
+
+export async function markPriority(id: number) {
+  const appointment = getMockAppointmentById(id)
+  if (!appointment) {
+    throw new Error('未找到预约记录')
+  }
+
+  updateMockAppointment(id, { priorityFlag: 1 })
+  return respondMock(toAppointmentDetailVO(id))
 }
