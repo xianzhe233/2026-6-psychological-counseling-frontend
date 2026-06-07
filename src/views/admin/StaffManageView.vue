@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { h, ref, reactive, onMounted } from 'vue'
 import {
   NButton,
   NCard,
@@ -7,6 +7,7 @@ import {
   NForm,
   NFormItem,
   NInput,
+  NInputNumber,
   NSelect,
   NSpace,
   NTag,
@@ -254,7 +255,7 @@ onMounted(() => {
           </n-gi>
           <n-gi>
             <n-form-item label="每日容量">
-              <n-input v-model:value="staffForm.maxDailyAppointments" placeholder="每日最大预约量" />
+              <n-input-number v-model:value="staffForm.maxDailyAppointments" :min="1" placeholder="每日最大预约量" />
             </n-form-item>
           </n-gi>
           <n-gi>

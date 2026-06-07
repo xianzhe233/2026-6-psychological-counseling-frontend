@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { h, ref, reactive, onMounted } from 'vue'
 import {
   NButton,
   NCard,
