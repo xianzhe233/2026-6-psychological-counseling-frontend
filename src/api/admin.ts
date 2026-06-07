@@ -1,5 +1,7 @@
 import dayjs from 'dayjs'
 
+import { http } from './http'
+import type { ApiResult } from '@/types/auth'
 import {
   applyDutyScheduleToAppointment,
   getMockAppointmentById,
@@ -597,146 +599,55 @@ export function getStaffTypeLabel(staffType: string) {
   return staffTypeLabelMap[staffType] ?? staffType
 }
 
-export async function pageUsers(query: UserQuery) {
-  const keyword = normalizeKeyword(query.keyword)
-  const records = mockUsers
-    .filter((item) => {
-      const matchKeyword = !keyword || [item.username, item.realName, item.phone, item.email]
-        .filter(Boolean)
-        .some(value => value.toLowerCase().includes(keyword))
-      const matchRole = !query.roleCode || item.roles.includes(query.roleCode)
-      const matchStatus = query.status == null || item.status === query.status
-      return matchKeyword && matchRole && matchStatus
-    })
-    .sort((a, b) => b.id - a.id)
+function compactParams<T extends Record<string, unknown>>(params: T) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  )
+}
 
-  return respond(paginate(records, query.pageNum, query.pageSize))
+export async function pageUsers(query: UserQuery) {
+  const { data } = await http.get<ApiResult<PageResult<UserVO>>>('/admin/users', {
+    params: compactParams(query),
+  })
+  return data.data
 }
 
 export async function createUser(data: UserSaveRequest) {
-  const now = dayjs().format('YYYY-MM-DD HH:mm')
-  const user: UserVO = {
-    id: ++userIdSeed,
-    username: data.username.trim(),
-    realName: data.realName.trim(),
-    phone: data.phone?.trim() ?? '',
-    email: data.email?.trim() ?? '',
-    roles: [...data.roleCodes],
-    status: data.status,
-    lastLoginTime: '-',
-    createTime: now,
-  }
-  mockUsers.unshift(user)
-  return respond(user)
+  const response = await http.post<ApiResult<number>>('/admin/users', data)
+  return response.data.data
 }
 
 export async function updateUser(id: number, data: UserSaveRequest) {
-  const target = mockUsers.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到用户')
-  }
-
-  Object.assign(target, {
-    username: data.username.trim(),
-    realName: data.realName.trim(),
-    phone: data.phone?.trim() ?? '',
-    email: data.email?.trim() ?? '',
-    roles: [...data.roleCodes],
-    status: data.status,
-  })
-
-  return respond(target)
+  await http.put<ApiResult<null>>(`/admin/users/${id}`, data)
 }
 
 export async function disableUser(id: number) {
-  const target = mockUsers.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到用户')
-  }
-  target.status = 0
-  return respond(target)
+  await http.post<ApiResult<null>>(`/admin/users/${id}/disable`)
 }
 
 export async function enableUser(id: number) {
-  const target = mockUsers.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到用户')
-  }
-  target.status = 1
-  return respond(target)
+  await http.post<ApiResult<null>>(`/admin/users/${id}/enable`)
 }
 
 export async function resetPassword(id: number) {
-  const target = mockUsers.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到用户')
-  }
-  return respond({ id, defaultPassword: '123456' })
+  const response = await http.post<ApiResult<string>>(`/admin/users/${id}/reset-password`)
+  return response.data.data
 }
 
 export async function pageStaff(query: StaffQuery) {
-  const keyword = normalizeKeyword(query.keyword)
-  const records = mockStaff
-    .filter((item) => {
-      const matchKeyword = !keyword || [item.staffNo, item.realName, item.phone]
-        .filter(Boolean)
-        .some(value => value.toLowerCase().includes(keyword))
-      const matchType = !query.staffType || item.staffType === query.staffType
-      const matchStatus = query.status == null || item.status === query.status
-      return matchKeyword && matchType && matchStatus
-    })
-    .sort((a, b) => b.id - a.id)
-
-  return respond(paginate(records, query.pageNum, query.pageSize))
+  const { data } = await http.get<ApiResult<PageResult<StaffVO>>>('/admin/staff', {
+    params: compactParams(query),
+  })
+  return data.data
 }
 
 export async function createStaff(data: StaffSaveRequest) {
-  const staff: StaffVO = {
-    id: ++staffIdSeed,
-    userId: data.userId ?? 0,
-    username: data.username?.trim() ?? '',
-    staffNo: data.staffNo?.trim() || `${data.staffType.slice(0, 1)}${String(staffIdSeed).slice(-3)}`,
-    realName: data.realName.trim(),
-    phone: data.phone?.trim() ?? '',
-    staffType: data.staffType,
-    title: data.title?.trim() ?? '',
-    specialty: data.specialty?.trim() ?? '',
-    introduction: data.introduction?.trim() ?? '',
-    maxDailyAppointments: data.maxDailyAppointments ?? 6,
-    status: data.status,
-  }
-  mockStaff.unshift(staff)
-  return respond(staff)
+  const response = await http.post<ApiResult<number>>('/admin/staff', data)
+  return response.data.data
 }
 
 export async function updateStaff(id: number, data: StaffSaveRequest) {
-  const target = mockStaff.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到工作人员')
-  }
-
-  Object.assign(target, {
-    userId: data.userId ?? target.userId,
-    username: data.username?.trim() ?? target.username ?? '',
-    staffNo: data.staffNo?.trim() || target.staffNo,
-    realName: data.realName.trim(),
-    phone: data.phone?.trim() ?? '',
-    staffType: data.staffType,
-    title: data.title?.trim() ?? '',
-    specialty: data.specialty?.trim() ?? '',
-    introduction: data.introduction?.trim() ?? '',
-    maxDailyAppointments: data.maxDailyAppointments ?? 6,
-    status: data.status,
-  })
-
-  mockDutySchedules.forEach((item) => {
-    if (item.staffId === id) {
-      item.staffName = target.realName
-      item.staffType = target.staffType
-    }
-  })
-
-  return respond(target)
+  await http.put<ApiResult<null>>(`/admin/staff/${id}`, data)
 }
 
 export async function getStaffOptions(staffType?: string) {
@@ -752,54 +663,19 @@ export async function getStaffOptions(staffType?: string) {
 }
 
 export async function pageRooms(query: RoomQuery) {
-  const keyword = normalizeKeyword(query.keyword)
-  const records = mockRooms
-    .filter((item) => {
-      const matchKeyword = !keyword || [item.roomName, item.location, item.remark]
-        .filter(Boolean)
-        .some(value => value.toLowerCase().includes(keyword))
-      const matchStatus = query.status == null || item.status === query.status
-      return matchKeyword && matchStatus
-    })
-    .sort((a, b) => b.id - a.id)
-
-  return respond(paginate(records, query.pageNum, query.pageSize))
+  const { data } = await http.get<ApiResult<PageResult<RoomVO>>>('/admin/rooms', {
+    params: compactParams(query),
+  })
+  return data.data
 }
 
 export async function createRoom(data: RoomSaveRequest) {
-  const room: RoomVO = {
-    id: ++roomIdSeed,
-    roomName: data.roomName.trim(),
-    location: data.location?.trim() ?? '',
-    capacity: data.capacity,
-    status: data.status,
-    remark: data.remark?.trim() ?? '',
-  }
-  mockRooms.unshift(room)
-  return respond(room)
+  const response = await http.post<ApiResult<number>>('/admin/rooms', data)
+  return response.data.data
 }
 
 export async function updateRoom(id: number, data: RoomSaveRequest) {
-  const target = mockRooms.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到咨询室')
-  }
-
-  Object.assign(target, {
-    roomName: data.roomName.trim(),
-    location: data.location?.trim() ?? '',
-    capacity: data.capacity,
-    status: data.status,
-    remark: data.remark?.trim() ?? '',
-  })
-
-  mockDutySchedules.forEach((item) => {
-    if (item.roomId === id) {
-      item.roomName = target.roomName
-    }
-  })
-
-  return respond(target)
+  await http.put<ApiResult<null>>(`/admin/rooms/${id}`, data)
 }
 
 export async function getRoomOptions() {
@@ -814,55 +690,19 @@ export async function getRoomOptions() {
 }
 
 export async function pageTimeSlots(query: TimeSlotQuery) {
-  const keyword = normalizeKeyword(query.keyword)
-  const records = mockTimeSlots
-    .filter((item) => {
-      const matchKeyword = !keyword || [item.slotName, item.startTime, item.endTime]
-        .some(value => value.toLowerCase().includes(keyword))
-      const matchStatus = query.status == null || item.status === query.status
-      return matchKeyword && matchStatus
-    })
-    .sort((a, b) => b.id - a.id)
-
-  return respond(paginate(records, query.pageNum, query.pageSize))
+  const { data } = await http.get<ApiResult<PageResult<TimeSlotVO>>>('/admin/time-slots', {
+    params: compactParams(query),
+  })
+  return data.data
 }
 
 export async function createTimeSlot(data: TimeSlotSaveRequest) {
-  const slot: TimeSlotVO = {
-    id: ++slotIdSeed,
-    slotName: data.slotName.trim(),
-    startTime: data.startTime,
-    endTime: data.endTime,
-    intervalMinutes: data.intervalMinutes ?? 10,
-    status: data.status,
-  }
-  mockTimeSlots.unshift(slot)
-  return respond(slot)
+  const response = await http.post<ApiResult<number>>('/admin/time-slots', data)
+  return response.data.data
 }
 
 export async function updateTimeSlot(id: number, data: TimeSlotSaveRequest) {
-  const target = mockTimeSlots.find(item => item.id === id)
-  if (!target) {
-    throw new Error('未找到时间段')
-  }
-
-  Object.assign(target, {
-    slotName: data.slotName.trim(),
-    startTime: data.startTime,
-    endTime: data.endTime,
-    intervalMinutes: data.intervalMinutes ?? 10,
-    status: data.status,
-  })
-
-  mockDutySchedules.forEach((item) => {
-    if (item.slotId === id) {
-      item.slotName = target.slotName
-      item.startTime = target.startTime
-      item.endTime = target.endTime
-    }
-  })
-
-  return respond(target)
+  await http.put<ApiResult<null>>(`/admin/time-slots/${id}`, data)
 }
 
 export async function getTimeSlotOptions() {
