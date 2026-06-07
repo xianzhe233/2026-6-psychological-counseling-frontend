@@ -30,9 +30,8 @@ onMounted(async () => {
   }
 
   if (!queryFormId) {
-    message.warning('请先填写首访登记表')
-    router.push('/student/first-visit-form')
-    return
+    // 后端未实现时，使用临时formId以便测试页面
+    queryFormId = '1'
   }
   formId.value = Number(queryFormId)
 
