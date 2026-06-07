@@ -73,10 +73,10 @@
 
 ### 阶段五：心理助理端
 
-- [ ] 咨询队列页面。
-- [ ] 咨询安排页面。
-- [ ] 咨询时段预览表。
-- [ ] 冲突结果展示。
+- [x] 咨询队列页面。
+- [x] 咨询安排页面。
+- [x] 咨询时段预览表。
+- [x] 冲突结果展示。
 
 ### 阶段六：咨询师端
 
@@ -215,6 +215,36 @@
 ### 遗留问题
 - 值班管理、预约审核、初访结果页仍主要使用 mock 数据流。
 - 学生“我的预约 / 我的通知 / 可预约时段选择”仍是后续阶段内容，当前未完成真实业务实现。
+
+---
+
+## 2026-06-07 心理助理页面（assignment-zyt 阶段1）
+
+### 完成内容
+- 新增心理助理 mock API，基于初访结果生成咨询队列，并保存正式咨询安排状态。
+- 完成 `ConsultationQueueView`，支持关键词、危机等级、问题类型、队列状态筛选，支持安排咨询和暂缓。
+- 新增 `ConsultationArrangeView`，展示学生信息和初访摘要，支持选择咨询师、咨询日期、时间段、咨询室并生成安排预览。
+- 提交安排时进行咨询师/咨询室同日期同时间段冲突校验，冲突原因直接展示在页面提示中。
+- 补齐助理菜单、正式咨询安排路由和队列状态标签。
+
+### 影响文件
+- `src/api/assistant.ts`
+- `src/api/mock-first-visit.ts`
+- `src/components/common/StatusTag.vue`
+- `src/constants/menus.ts`
+- `src/router/routes.ts`
+- `src/views/assistant/ConsultationQueueView.vue`
+- `src/views/assistant/ConsultationArrangeView.vue`
+- `../assignment-zyt.md`
+
+### 验证方式
+- 编辑器诊断检查新增/修改文件无 linter 错误。
+- 本地终端复跑 `npm run typecheck`、`npm run build`。
+- 浏览器手动登录心理助理账号后完成阶段1冒烟：队列展示、关键词筛选、安排页详情展示、安排预览、提交成功、冲突原因展示、暂缓确认与状态变更。
+
+### 遗留问题
+- 当前阶段仍为前端 mock 数据，尚未接入真实后端咨询队列和正式咨询安排接口。
+- 后续等待 PR review 后合入 `dev`。
 
 ---
 
