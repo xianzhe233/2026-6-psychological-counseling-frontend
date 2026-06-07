@@ -60,9 +60,9 @@ async function handleSubmit() {
 
   loading.value = true
   try {
-    await saveFirstVisitForm(form.value)
+    const { data } = await saveFirstVisitForm(form.value)
     message.success('提交成功')
-    router.push('/student/consent')
+    router.push({ path: '/student/consent', query: { formId: data.data.id } })
   } catch (error: any) {
     message.error(error?.message || '提交失败')
   } finally {
