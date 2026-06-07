@@ -160,6 +160,31 @@
 
 ---
 
+## 2026-06-07 合并 lcw 阶段1-3 后 review 修复
+
+### 完成内容
+- 将 lcw 的学生端阶段1-3 PR 合入 `dev`，并关闭被阶段3 PR 覆盖的旧阶段 PR。
+- 在 `dev-qxz` 上补齐首访登记表到知情同意书的 `formId` 传递，避免依赖临时假数据串联流程。
+- 对齐首访登记表与文档约定的字数限制、评分范围和提交提示文案。
+- 调整知情同意书页面：未找到登记表时给出明确提示，已签署时可直接继续前往预约页面。
+- 在预约页面骨架中展示接收到的 `formId` 状态，便于后续阶段4联调。
+
+### 影响文件
+- `src/views/student/FirstVisitFormView.vue`
+- `src/views/student/ConsentView.vue`
+- `src/views/student/AppointmentCreateView.vue`
+- `src/types/student.ts`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+- 学生端阶段4/5仍未实现真实预约列表、通知列表与时段选择逻辑。
+- 学生端后端接口尚未完成，当前仅完成前端页面串联与参数传递校正。
+
+---
+
 ## 后续更新规则
 
 ## 2026-06-06 前端最小骨架

@@ -2,8 +2,8 @@ export interface FirstVisitForm {
   id: number
   studentId: number
   mainProblem: string
-  problemDescription: string
-  expectedHelp: string
+  problemDescription?: string
+  expectedHelp?: string
   moodScore: number
   sleepScore: number
   stressScore: number
@@ -12,7 +12,7 @@ export interface FirstVisitForm {
   riskScore: number
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
   formStatus: 'DRAFT' | 'SUBMITTED'
-  submitTime: string | null
+  submitTime?: string | null
   createTime: string
   updateTime: string
 }
@@ -30,7 +30,7 @@ export interface FirstVisitFormRequest {
 
 export interface ConsentStatus {
   formId: number
-  signed: boolean
+  signed: boolean | 0 | 1
   signTime: string | null
   consentVersion: string | null
 }
@@ -49,8 +49,8 @@ export interface AvailableSlot {
   slotName: string
   startTime: string
   endTime: string
-  roomId: number
-  roomName: string
+  roomId?: number
+  roomName?: string
   capacity: number
   reservedCount: number
   remaining: number
