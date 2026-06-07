@@ -28,10 +28,34 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: '工作台' }
       },
       {
+        path: 'student/first-visit-form',
+        name: 'StudentFirstVisitForm',
+        component: () => import('@/views/student/FirstVisitFormView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '首访登记表' }
+      },
+      {
+        path: 'student/consent',
+        name: 'StudentConsent',
+        component: () => import('@/views/student/ConsentView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '知情同意书' }
+      },
+      {
+        path: 'student/appointment-create',
+        name: 'StudentAppointmentCreate',
+        component: () => import('@/views/student/AppointmentCreateView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '初访预约' }
+      },
+      {
         path: 'student/appointments',
         name: 'StudentAppointments',
         component: () => import('@/views/student/MyAppointmentsView.vue'),
         meta: { requiresAuth: true, roles: ['STUDENT'], title: '我的预约' }
+      },
+      {
+        path: 'student/notifications',
+        name: 'StudentNotifications',
+        component: () => import('@/views/student/MyNotificationsView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '我的通知' }
       },
       {
         path: 'admin/users',
