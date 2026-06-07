@@ -131,6 +131,35 @@
 
 ---
 
+## 2026-06-07 review并修复 ltb 阶段2/3 页面
+
+### 完成内容
+- 审查 `ltb-stage2-audit` 与 `ltb-stage3-interviewer` 两个 PR，确认原 PR 存在阶段1改动混入、直接切换真实 API 导致现有 mock 页面失效等问题。
+- 在 `dev-qxz` 上补齐共享 mock 初访流程数据，打通“管理员审核 → 初访员任务 → 初访结果提交”的演示链路。
+- 完成 `AppointmentAuditView`，支持搜索、风险高亮、详情抽屉、通过/驳回/改约/优先操作与二次确认。
+- 完成 `InterviewTaskView` 与 `InterviewResultEditView`，支持任务筛选、结果录入、转介必填校验、已提交结果回显。
+- 补齐 `src/api/interviewer.ts` 与相关路由，保证阶段2/3页面可单独访问并通过构建检查。
+
+### 影响文件
+- `src/api/admin.ts`
+- `src/api/interviewer.ts`
+- `src/api/mock-first-visit.ts`
+- `src/router/routes.ts`
+- `src/views/admin/AppointmentAuditView.vue`
+- `src/views/interviewer/InterviewTaskView.vue`
+- `src/views/interviewer/InterviewResultEditView.vue`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+- 基于共享 mock 数据手动走通管理员审核与初访结果录入链路
+
+### 遗留问题
+- 当前阶段2/3仍是前端 mock 流程，尚未接入真实后端接口。
+- 心理助理咨询队列页面仍为占位页，初访结论为“安排咨询”后尚未在前端展示后续队列页面。
+
+---
+
 ## 后续更新规则
 
 ## 2026-06-06 前端最小骨架
