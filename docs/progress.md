@@ -323,6 +323,30 @@
 
 ---
 
+## 2026-06-08 review 修正 lcw 阶段4/5 学生页面
+
+### 完成内容
+- 在 `dev-qxz` 上同步 lcw 学生端“我的预约 / 我的通知”页面到最新 `dev` 基线并完成 review。
+- 修复我的预约页“新建预约”跳转到不存在路由 `/student/appointments/create` 的问题，改为正确跳转 `/student/appointment-create`。
+- 修复我的通知页筛选控件未透传 `notifyType` 参数，导致筛选 UI 存在但请求始终返回全量数据的问题。
+- 补齐通知类型映射，兼容预约驳回、预约撤销和系统通知等已有后端类型。
+
+### 影响文件
+- `src/views/student/MyAppointmentsView.vue`
+- `src/views/student/MyNotificationsView.vue`
+- `src/api/student.ts`
+- `docs/progress.md`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+- 学生端“我的预约 / 我的通知”已接入真实接口，但仍需后续联调更多真实通知产生场景。
+- 构建仍提示 `StatisticsView` chunk 超过 `500 kB` 警戒线，本次未继续处理该非阻塞告警。
+
+---
+
 ## 2026-06-08 阶段三：统计看板与日志页面
 
 ### 完成内容
