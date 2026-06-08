@@ -22,20 +22,19 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 
 import {
-  batchCreateDutySchedules,
-  createDutySchedule,
-  getRoomOptions,
-  getStaffOptions,
+  batchCreateDutySchedulesReal,
+  createDutyScheduleReal,
+  getRoomOptionsReal,
+  getStaffOptionsReal,
   getStaffTypeLabel,
-  getTimeSlotOptions,
-  pageDutySchedules,
-  updateDutySchedule,
+  getTimeSlotOptionsReal,
+  pageDutySchedulesReal,
+  updateDutyScheduleReal,
 } from '@/api/admin'
 import type {
-  BatchCreateDutySchedulesRequest,
-  DutyScheduleSaveRequest,
   DutyScheduleVO,
   OptionItem,
+  RealDutyScheduleVO,
 } from '@/api/admin'
 
 const message = useMessage()
@@ -44,7 +43,7 @@ const submitting = ref(false)
 const batchSubmitting = ref(false)
 const showModal = ref(false)
 const showBatchModal = ref(false)
-const editingSchedule = ref<DutyScheduleVO | null>(null)
+const editingSchedule = ref<RealDutyScheduleVO | null>(null)
 
 const searchForm = reactive({
   staffType: null as string | null,
@@ -99,7 +98,7 @@ const batchStaffOptions = ref<OptionItem[]>([])
 const slotOptions = ref<OptionItem[]>([])
 const roomOptions = ref<OptionItem[]>([])
 
-const columns: DataTableColumns<DutyScheduleVO> = [
+const columns: DataTableColumns<RealDutyScheduleVO> = [
   { title: '日期', key: 'dutyDate', width: 110 },
   { title: '时间段', key: 'slotName', width: 170 },
   { title: '工作人员', key: 'staffName', width: 120 },
@@ -150,7 +149,7 @@ const columns: DataTableColumns<DutyScheduleVO> = [
   },
 ]
 
-const data = ref<DutyScheduleVO[]>([])
+const data = ref<RealDutyScheduleVO[]>([])
 const pagination = reactive({
   page: 1,
   pageSize: 10,
@@ -192,17 +191,17 @@ function syncSelectedStaffId(options: OptionItem[], currentValue: number | null)
 async function fetchData() {
   loading.value = true
   try {
-    const result = await pageDutySchedules({
+    const { data: result } = await pageDutySchedulesReal({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
       staffType: searchForm.staffType ?? undefined,
-      staffId: searchForm.staffId,
+      staffId: searchForm.staffId ?? undefined,
       startDate: searchForm.dateRange?.[0],
       endDate: searchForm.dateRange?.[1],
-      status: searchForm.status,
+      status: searchForm.status ?? undefined,
     })
-    data.value = result.records
-    pagination.itemCount = result.total
+    data.value = result.data.records
+    pagination.itemCount = result.data.total
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载值班安排失败')
   } finally {
@@ -212,7 +211,8 @@ async function fetchData() {
 
 async function loadSearchStaffOptions() {
   try {
-    searchStaffOptions.value = await getStaffOptions(searchForm.staffType ?? undefined)
+    const { data: result } = await getStaffOptionsReal(searchForm.staffType ?? undefined)
+    searchStaffOptions.value = result.data
     searchForm.staffId = syncSelectedStaffId(searchStaffOptions.value, searchForm.staffId)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员选项失败')
@@ -221,7 +221,8 @@ async function loadSearchStaffOptions() {
 
 async function loadFormStaffOptions() {
   try {
-    formStaffOptions.value = await getStaffOptions(scheduleForm.staffType)
+    const { data: result } = await getStaffOptionsReal(scheduleForm.staffType)
+    formStaffOptions.value = result.data
     scheduleForm.staffId = syncSelectedStaffId(formStaffOptions.value, scheduleForm.staffId)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员选项失败')
@@ -230,7 +231,8 @@ async function loadFormStaffOptions() {
 
 async function loadBatchStaffOptions() {
   try {
-    batchStaffOptions.value = await getStaffOptions(batchForm.staffType)
+    const { data: result } = await getStaffOptionsReal(batchForm.staffType)
+    batchStaffOptions.value = result.data
     batchForm.staffId = syncSelectedStaffId(batchStaffOptions.value, batchForm.staffId)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员选项失败')
@@ -239,7 +241,8 @@ async function loadBatchStaffOptions() {
 
 async function loadSlotOptions() {
   try {
-    slotOptions.value = await getTimeSlotOptions()
+    const { data: result } = await getTimeSlotOptionsReal()
+    slotOptions.value = result.data
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载时间段选项失败')
   }
@@ -247,7 +250,8 @@ async function loadSlotOptions() {
 
 async function loadRoomOptions() {
   try {
-    roomOptions.value = await getRoomOptions()
+    const { data: result } = await getRoomOptionsReal()
+    roomOptions.value = result.data
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载咨询室选项失败')
   }
@@ -274,7 +278,7 @@ async function handleAdd() {
   await loadFormStaffOptions()
 }
 
-async function handleEdit(record: DutyScheduleVO) {
+async function handleEdit(record: RealDutyScheduleVO) {
   editingSchedule.value = record
   Object.assign(scheduleForm, {
     staffType: record.staffType,
@@ -289,8 +293,8 @@ async function handleEdit(record: DutyScheduleVO) {
   await loadFormStaffOptions()
 }
 
-async function handleToggleStatus(record: DutyScheduleVO) {
-  const payload: DutyScheduleSaveRequest = {
+async function handleToggleStatus(record: RealDutyScheduleVO) {
+  const payload = {
     staffId: record.staffId,
     staffType: record.staffType,
     dutyDate: record.dutyDate,
@@ -301,7 +305,7 @@ async function handleToggleStatus(record: DutyScheduleVO) {
   }
 
   try {
-    await updateDutySchedule(record.id, payload)
+    await updateDutyScheduleReal(record.id, payload)
     message.success(record.status === 1 ? '值班已停用' : '值班已启用')
     await fetchData()
   } catch (error) {
@@ -333,12 +337,12 @@ async function handleSubmit() {
     return
   }
 
-  const payload: DutyScheduleSaveRequest = {
+  const payload = {
     staffId: scheduleForm.staffId,
     staffType: scheduleForm.staffType,
     dutyDate: scheduleForm.dutyDate,
     slotId: scheduleForm.slotId,
-    roomId: scheduleForm.roomId,
+    roomId: scheduleForm.roomId ?? undefined,
     capacity: scheduleForm.capacity,
     status: scheduleForm.status,
   }
@@ -346,10 +350,10 @@ async function handleSubmit() {
   submitting.value = true
   try {
     if (editingSchedule.value) {
-      await updateDutySchedule(editingSchedule.value.id, payload)
+      await updateDutyScheduleReal(editingSchedule.value.id, payload)
       message.success('值班安排已更新')
     } else {
-      await createDutySchedule(payload)
+      await createDutyScheduleReal(payload)
       message.success('值班安排已创建')
     }
     showModal.value = false
@@ -383,21 +387,21 @@ async function handleBatchSubmit() {
     return
   }
 
-  const payload: BatchCreateDutySchedulesRequest = {
+  const payload = {
     staffId: batchForm.staffId,
     staffType: batchForm.staffType,
     startDate: batchForm.dateRange[0],
     endDate: batchForm.dateRange[1],
     weekdays: [...batchForm.weekdays],
     slotIds: [...batchForm.slotIds],
-    roomId: batchForm.roomId,
+    roomId: batchForm.roomId ?? undefined,
     capacity: batchForm.capacity,
   }
 
   batchSubmitting.value = true
   try {
-    const result = await batchCreateDutySchedules(payload)
-    message.success(`已批量创建 ${result.createdCount} 条值班安排`)
+    const { data: result } = await batchCreateDutySchedulesReal(payload)
+    message.success(`已批量创建 ${result.data.createdCount} 条值班安排`)
     showBatchModal.value = false
     await fetchData()
   } catch (error) {

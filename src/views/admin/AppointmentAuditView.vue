@@ -28,7 +28,7 @@ import StatusTag from '@/components/common/StatusTag.vue'
 import {
   approveAppointmentReal,
   getAuditAppointmentDetailReal,
-  getInterviewDutyOptions,
+  getInterviewDutyOptionsReal,
   markPriorityReal,
   pageAuditAppointmentsReal,
   rejectAppointmentReal,
@@ -226,23 +226,7 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
-function normalizeDutyOption(item: DutyScheduleVO): InterviewDutyOption {
-  return {
-    dutyScheduleId: item.id,
-    interviewerId: item.staffId,
-    interviewerName: item.staffName,
-    appointmentDate: item.dutyDate,
-    slotId: item.slotId,
-    slotName: item.slotName,
-    startTime: item.startTime,
-    endTime: item.endTime,
-    roomId: item.roomId ?? undefined,
-    roomName: item.roomName,
-    capacity: item.capacity,
-    reservedCount: item.reservedCount,
-    remaining: item.remaining,
-  }
-}
+
 
 function normalizeRealAppointment(item: RealAppointmentAuditVO): AppointmentDetailVO {
   return {
@@ -285,20 +269,22 @@ function normalizeRealAppointment(item: RealAppointmentAuditVO): AppointmentDeta
 
 async function fetchDutyOptions() {
   try {
-    const { data: result } = await getInterviewDutyOptions()
-    dutyOptions.value = result
-    return
-  } catch {
-  }
-
-  try {
-    const response = await import('@/api/admin').then(module => module.pageDutySchedules({
-      pageNum: 1,
-      pageSize: 100,
-      staffType: 'INTERVIEWER',
-      status: 1,
+    const { data: result } = await getInterviewDutyOptionsReal()
+    dutyOptions.value = result.data.records.map(item => ({
+      dutyScheduleId: item.id,
+      interviewerId: item.staffId,
+      interviewerName: item.staffName,
+      appointmentDate: item.dutyDate,
+      slotId: item.slotId,
+      slotName: item.slotName,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      roomId: item.roomId,
+      roomName: item.roomName,
+      capacity: item.capacity,
+      reservedCount: item.reservedCount,
+      remaining: item.remaining,
     }))
-    dutyOptions.value = response.records.map(normalizeDutyOption)
   } catch (error) {
     message.error(getErrorMessage(error, '加载值班选项失败'))
   }
