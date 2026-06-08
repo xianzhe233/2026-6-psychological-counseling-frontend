@@ -101,13 +101,8 @@ async function fetchAppointments() {
       pageSize: pageSize.value,
       status: statusFilter.value || undefined
     })
-    console.log('API返回数据:', data)
-    console.log('data.data:', data.data)
-    console.log('records:', data.data?.records)
-    console.log('total:', data.data?.total)
     appointments.value = data.data?.records || []
     total.value = data.data?.total || 0
-    console.log('设置后的total:', total.value)
   } catch (error) {
     console.error('获取预约列表失败:', error)
   } finally {

@@ -64,7 +64,7 @@ export interface AppointmentCreateRequest {
   appointmentDate: string
   slotId: number
   interviewerId: number
-  roomId: number
+  roomId?: number
 }
 
 export interface Appointment {

@@ -25,23 +25,19 @@ import type { DataTableColumns } from 'naive-ui'
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { http } from '@/api/http'
 import {
-  approveAppointment,
   approveAppointmentReal,
-  getAuditAppointmentDetail,
+  getAuditAppointmentDetailReal,
   getInterviewDutyOptions,
-  markPriority,
-  pageAuditAppointments,
+  markPriorityReal,
   pageAuditAppointmentsReal,
-  rejectAppointment,
   rejectAppointmentReal,
-  rescheduleAppointment,
   rescheduleAppointmentReal,
 } from '@/api/admin'
 import type {
   AppointmentAuditVO,
   AppointmentDetailVO,
+  DutyScheduleVO,
   InterviewDutyOption,
   RealAppointmentAuditVO,
 } from '@/api/admin'
@@ -217,44 +213,100 @@ function rowClassName(row: AppointmentAuditVO) {
   return ['HIGH', 'URGENT'].includes(row.riskLevel) ? 'high-risk-row' : ''
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response
+    if (response?.data?.message) {
+      return response.data.message
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  return fallback
+}
+
+function normalizeDutyOption(item: DutyScheduleVO): InterviewDutyOption {
+  return {
+    dutyScheduleId: item.id,
+    interviewerId: item.staffId,
+    interviewerName: item.staffName,
+    appointmentDate: item.dutyDate,
+    slotId: item.slotId,
+    slotName: item.slotName,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    roomId: item.roomId ?? undefined,
+    roomName: item.roomName,
+    capacity: item.capacity,
+    reservedCount: item.reservedCount,
+    remaining: item.remaining,
+  }
+}
+
+function normalizeRealAppointment(item: RealAppointmentAuditVO): AppointmentDetailVO {
+  return {
+    id: item.id,
+    appointmentNo: item.appointmentNo,
+    studentId: item.studentId,
+    studentNo: item.studentNo,
+    studentName: item.studentName,
+    college: item.college,
+    phone: item.phone,
+    mainProblem: item.mainProblem,
+    problemDescription: item.problemDescription,
+    expectedHelp: item.expectedHelp,
+    moodScore: item.moodScore ?? 0,
+    sleepScore: item.sleepScore ?? 0,
+    stressScore: item.stressScore ?? 0,
+    selfHarmFlag: item.selfHarmFlag ?? 0,
+    emergencyFlag: item.emergencyFlag ?? 0,
+    riskScore: item.riskScore,
+    riskLevel: item.riskLevel as AppointmentDetailVO['riskLevel'],
+    appointmentDate: item.appointmentDate,
+    slotId: item.slotId,
+    slotName: item.slotName,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    interviewerId: item.interviewerId,
+    interviewerName: item.interviewerName,
+    roomId: item.roomId,
+    roomName: item.roomName,
+    dutyScheduleId: item.dutyScheduleId,
+    appointmentStatus: item.appointmentStatus,
+    priorityFlag: item.priorityFlag,
+    auditRemark: item.auditRemark,
+    rejectReason: item.rejectReason || item.cancelReason,
+    auditTime: item.auditTime,
+    auditorName: item.auditAdminName,
+    createTime: item.createTime,
+  }
+}
+
 async function fetchDutyOptions() {
   try {
-    // 使用真实API获取值班安排选项
-    const { data: result } = await http.get('/admin/duty-schedules', { 
-      params: { 
-        staffType: 'INTERVIEWER', 
-        status: 1,
-        pageNum: 1,
-        pageSize: 100
-      } 
-    })
-    if (result.code === 200 && result.data) {
-      // 转换为值班选项格式
-      dutyOptions.value = result.data.records.map((item: any) => ({
-        dutyScheduleId: item.id,
-        interviewerId: item.staffId,
-        interviewerName: item.staffName,
-        appointmentDate: item.dutyDate,
-        slotId: item.slotId,
-        slotName: item.slotName,
-        startTime: item.startTime,
-        endTime: item.endTime,
-        roomId: item.roomId,
-        roomName: item.roomName,
-        capacity: item.capacity,
-        reservedCount: item.reservedCount,
-        remaining: item.remaining
-      }))
-    }
+    const { data: result } = await getInterviewDutyOptions()
+    dutyOptions.value = result
+    return
+  } catch {
+  }
+
+  try {
+    const response = await import('@/api/admin').then(module => module.pageDutySchedules({
+      pageNum: 1,
+      pageSize: 100,
+      staffType: 'INTERVIEWER',
+      status: 1,
+    }))
+    dutyOptions.value = response.records.map(normalizeDutyOption)
   } catch (error) {
-    console.error('加载值班选项失败:', error)
+    message.error(getErrorMessage(error, '加载值班选项失败'))
   }
 }
 
 async function fetchAppointments() {
   loading.value = true
   try {
-    // 尝试使用真实API
     const { data: result } = await pageAuditAppointmentsReal({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
@@ -265,42 +317,10 @@ async function fetchAppointments() {
       startDate: searchForm.dateRange?.[0],
       endDate: searchForm.dateRange?.[1],
     })
-    if (result.code === 200 && result.data) {
-      appointments.value = result.data.records
-      pagination.itemCount = result.data.total
-    } else {
-      // 回退到mock数据
-      const mockResult = await pageAuditAppointments({
-        pageNum: pagination.page,
-        pageSize: pagination.pageSize,
-        keyword: searchForm.keyword || undefined,
-        status: searchForm.status || undefined,
-        riskLevel: searchForm.riskLevel || undefined,
-        priorityFlag: searchForm.priorityFlag,
-        startDate: searchForm.dateRange?.[0],
-        endDate: searchForm.dateRange?.[1],
-      })
-      appointments.value = mockResult.records
-      pagination.itemCount = mockResult.total
-    }
+    appointments.value = result.data.records.map(normalizeRealAppointment)
+    pagination.itemCount = result.data.total
   } catch (error) {
-    // 回退到mock数据
-    try {
-      const mockResult = await pageAuditAppointments({
-        pageNum: pagination.page,
-        pageSize: pagination.pageSize,
-        keyword: searchForm.keyword || undefined,
-        status: searchForm.status || undefined,
-        riskLevel: searchForm.riskLevel || undefined,
-        priorityFlag: searchForm.priorityFlag,
-        startDate: searchForm.dateRange?.[0],
-        endDate: searchForm.dateRange?.[1],
-      })
-      appointments.value = mockResult.records
-      pagination.itemCount = mockResult.total
-    } catch {
-      message.error('加载预约审核列表失败')
-    }
+    message.error(getErrorMessage(error, '加载预约审核列表失败'))
   } finally {
     loading.value = false
   }
@@ -308,10 +328,11 @@ async function fetchAppointments() {
 
 async function handleViewDetail(id: number) {
   try {
-    detail.value = await getAuditAppointmentDetail(id)
+    const { data: result } = await getAuditAppointmentDetailReal(id)
+    detail.value = normalizeRealAppointment(result.data)
     showDetail.value = true
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载预约详情失败')
+    message.error(getErrorMessage(error, '加载预约详情失败'))
   }
 }
 
@@ -370,15 +391,16 @@ async function handleOpenReschedule(id: number) {
   currentAppointmentId.value = id
   resetRescheduleForm()
   try {
-    const currentDetail = await getAuditAppointmentDetail(id)
+    const { data: result } = await getAuditAppointmentDetailReal(id)
+    const currentDetail = normalizeRealAppointment(result.data)
     if (currentDetail.dutyScheduleId) {
       rescheduleForm.dutyScheduleId = currentDetail.dutyScheduleId
       rescheduleForm.auditRemark = currentDetail.auditRemark || ''
     }
+    showRescheduleModal.value = true
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载当前预约信息失败')
+    message.error(getErrorMessage(error, '加载当前预约信息失败'))
   }
-  showRescheduleModal.value = true
 }
 
 async function handlePriority(id: number) {
@@ -389,22 +411,18 @@ async function handlePriority(id: number) {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        await markPriority(id)
+        await markPriorityReal(id)
         message.success('已标记为优先')
         await fetchAppointments()
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '标记优先失败')
+        message.error(getErrorMessage(error, '标记优先失败'))
       }
     },
   })
 }
 
-async function handleApproveConfirm() {
-  if (!currentAppointmentId.value) return
-  if (!selectedApproveDuty.value) {
-    message.warning('请选择分配值班')
-    return
-  }
+async function submitApprove() {
+  if (!currentAppointmentId.value || !selectedApproveDuty.value) return
 
   submitting.value = true
   try {
@@ -419,41 +437,63 @@ async function handleApproveConfirm() {
     message.success('预约已审核通过')
     showApproveModal.value = false
     await Promise.all([fetchDutyOptions(), fetchAppointments()])
-  } catch (error: any) {
-    const errorMsg = error?.response?.data?.message || error?.message || '审核通过失败'
-    message.error(errorMsg)
+  } catch (error) {
+    message.error(getErrorMessage(error, '审核通过失败'))
   } finally {
     submitting.value = false
   }
 }
 
-async function handleRejectConfirm() {
+function handleApproveConfirm() {
+  if (!currentAppointmentId.value) return
+  if (!selectedApproveDuty.value) {
+    message.warning('请选择分配值班')
+    return
+  }
+
+  dialog.warning({
+    title: '确认审核通过',
+    content: '确认将该预约通过并分配到当前值班安排吗？',
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: () => submitApprove(),
+  })
+}
+
+async function submitReject() {
+  if (!currentAppointmentId.value) return
+
+  submitting.value = true
+  try {
+    await rejectAppointmentReal(currentAppointmentId.value, { reason: rejectForm.reason.trim() })
+    message.success('预约已驳回')
+    showRejectModal.value = false
+    await fetchAppointments()
+  } catch (error) {
+    message.error(getErrorMessage(error, '驳回失败'))
+  } finally {
+    submitting.value = false
+  }
+}
+
+function handleRejectConfirm() {
   if (!currentAppointmentId.value) return
   if (!rejectForm.reason.trim()) {
     message.warning('请填写驳回原因')
     return
   }
 
-  submitting.value = true
-  try {
-    await rejectAppointmentReal(currentAppointmentId.value, { reason: rejectForm.reason })
-    message.success('预约已驳回')
-    showRejectModal.value = false
-    await fetchAppointments()
-  } catch (error: any) {
-    const errorMsg = error?.response?.data?.message || error?.message || '驳回失败'
-    message.error(errorMsg)
-  } finally {
-    submitting.value = false
-  }
+  dialog.warning({
+    title: '确认驳回预约',
+    content: '驳回后该预约将进入已驳回状态，确认继续吗？',
+    positiveText: '确认驳回',
+    negativeText: '取消',
+    onPositiveClick: () => submitReject(),
+  })
 }
 
-async function handleRescheduleConfirm() {
-  if (!currentAppointmentId.value) return
-  if (!selectedRescheduleDuty.value) {
-    message.warning('请选择新的值班安排')
-    return
-  }
+async function submitReschedule() {
+  if (!currentAppointmentId.value || !selectedRescheduleDuty.value) return
 
   submitting.value = true
   try {
@@ -468,12 +508,27 @@ async function handleRescheduleConfirm() {
     message.success('改约成功')
     showRescheduleModal.value = false
     await Promise.all([fetchDutyOptions(), fetchAppointments()])
-  } catch (error: any) {
-    const errorMsg = error?.response?.data?.message || error?.message || '改约失败'
-    message.error(errorMsg)
+  } catch (error) {
+    message.error(getErrorMessage(error, '改约失败'))
   } finally {
     submitting.value = false
   }
+}
+
+function handleRescheduleConfirm() {
+  if (!currentAppointmentId.value) return
+  if (!selectedRescheduleDuty.value) {
+    message.warning('请选择新的值班安排')
+    return
+  }
+
+  dialog.warning({
+    title: '确认改约',
+    content: '确认使用当前选择的值班安排对该预约进行改约吗？',
+    positiveText: '确认改约',
+    negativeText: '取消',
+    onPositiveClick: () => submitReschedule(),
+  })
 }
 
 watch(showApproveModal, (visible) => {

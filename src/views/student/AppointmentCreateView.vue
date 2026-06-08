@@ -34,13 +34,13 @@ async function handleSubmitAppointment() {
   
   submitting.value = true
   try {
-    const { data } = await createAppointment({
+    await createAppointment({
       formId: formId.value,
       dutyScheduleId: selectedSlot.value.dutyScheduleId,
       appointmentDate: selectedSlot.value.appointmentDate,
       slotId: selectedSlot.value.slotId,
       interviewerId: selectedSlot.value.interviewerId,
-      roomId: selectedSlot.value.roomId || 0
+      roomId: selectedSlot.value.roomId,
     })
     
     message.success('预约提交成功')
@@ -67,7 +67,6 @@ async function handleSubmitAppointment() {
       <AvailableSlotsSelector
         v-model="selectedSlot"
         :form-id="formId"
-        @select="(slot) => selectedSlot = slot"
       />
       
       <n-space v-if="selectedSlot" justify="end" class="submit-section">
