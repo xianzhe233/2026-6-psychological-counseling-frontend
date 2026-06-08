@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { CalendarOutline, ClipboardOutline, GridOutline, HomeOutline, PeopleOutline, PulseOutline } from '@vicons/ionicons5'
+import { BarChartOutline, CalendarOutline, ClipboardOutline, GridOutline, HomeOutline, ListOutline, NotificationsOutline, PeopleOutline, PulseOutline } from '@vicons/ionicons5'
 import type { RoleCode } from '@/types/auth'
 
 export interface MenuItem {
@@ -24,6 +24,9 @@ export const roleMenus: Record<RoleCode, MenuItem[]> = {
     { key: 'admin-time-slots', label: '时间段配置', path: '/admin/time-slots', icon: CalendarOutline },
     { key: 'admin-duty-schedules', label: '值班管理', path: '/admin/duty-schedules', icon: GridOutline },
     { key: 'admin-audit', label: '预约审核', path: '/admin/appointments/audit', icon: ClipboardOutline },
+    { key: 'admin-statistics', label: '统计看板', path: '/admin/statistics', icon: BarChartOutline },
+    { key: 'admin-notification-logs', label: '通知日志', path: '/admin/logs/notifications', icon: NotificationsOutline },
+    { key: 'admin-operation-logs', label: '操作日志', path: '/admin/logs/operations', icon: ListOutline },
   ],
   INTERVIEWER: [
     { key: 'interviewer-tasks', label: '初访任务', path: '/interviewer/tasks', icon: PeopleOutline },
