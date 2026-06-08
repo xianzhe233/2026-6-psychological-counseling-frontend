@@ -166,6 +166,26 @@
 
 ---
 
+## 2026-06-08 review 修正 ltb 阶段3 初访员任务权限
+
+### 完成内容
+- 在 `dev-qxz` 上复核 ltb 阶段3后发现，初访任务 mock API 将当前初访员写死为 `staffId=2002`，导致切换到其他初访员账号时仍会看到张老师的任务。
+- 将 `pageInterviewTasks`、`getInterviewTaskDetail`、`submitInterviewResult` 改为根据当前登录用户映射到对应 `INTERVIEWER` 工作人员身份，再筛选和校验任务归属。
+- 补齐详情页与提交接口的归属校验，避免仅通过改 URL 就查看或提交其他初访员的任务结果。
+
+### 影响文件
+- `src/api/admin.ts`
+- `src/api/interviewer.ts`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+- 当前阶段3仍基于前端 mock 数据，账号与任务归属校验仅覆盖 mock 演示链路；接入真实后端时仍需以后端接口权限控制为准。
+
+---
+
 ## 2026-06-07 合并 lcw 阶段1-3 后 review 修复
 
 ### 完成内容

@@ -362,6 +362,22 @@ const mockStaff: StaffVO[] = [
   },
 ]
 
+export function findMockStaffByIdentity(params: {
+  userId?: number
+  username?: string
+  realName?: string
+  staffType?: string
+}) {
+  const { userId, username, realName, staffType } = params
+  return mockStaff.find((item) => {
+    if (staffType && item.staffType !== staffType) return false
+    if (typeof userId === 'number' && item.userId === userId) return true
+    if (username && item.username === username) return true
+    if (realName && item.realName === realName) return true
+    return false
+  })
+}
+
 const mockRooms: RoomVO[] = [
   { id: 3001, roomName: '咨询室101', location: '心理中心一层', capacity: 2, status: 1, remark: '适合一对一面谈' },
   { id: 3002, roomName: '咨询室102', location: '心理中心一层', capacity: 2, status: 1, remark: '靠近等候区' },

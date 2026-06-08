@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 
-import type { OptionItem, PageResult } from './admin'
+import { useAuthStore } from '@/stores/auth'
+import { findMockStaffByIdentity, type OptionItem, type PageResult } from './admin'
 import {
   getMockAppointments,
   getMockAppointmentById,
@@ -81,6 +82,26 @@ export interface InterviewResultRequest {
   nextAction?: string
 }
 
+function getCurrentInterviewerStaffId() {
+  const auth = useAuthStore()
+  const currentUser = auth.user
+  if (!currentUser) {
+    throw new Error('当前未登录，无法加载初访任务')
+  }
+
+  const staff = findMockStaffByIdentity({
+    userId: currentUser.id,
+    username: currentUser.username,
+    realName: currentUser.realName,
+    staffType: 'INTERVIEWER',
+  })
+  if (!staff) {
+    throw new Error('当前账号未绑定初访员身份')
+  }
+
+  return staff.id
+}
+
 function paginate<T>(list: T[], pageNum: number, pageSize: number): PageResult<T> {
   const total = list.length
   const safePageSize = Math.max(pageSize, 1)
@@ -97,8 +118,10 @@ function paginate<T>(list: T[], pageNum: number, pageSize: number): PageResult<T
 }
 
 export async function pageInterviewTasks(query: InterviewTaskQuery) {
+  const interviewerStaffId = getCurrentInterviewerStaffId()
+
   const records = getMockAppointments()
-    .filter((item) => item.interviewerId === 2002)
+    .filter((item) => item.interviewerId === interviewerStaffId)
     .filter((item) => !query.status || item.appointmentStatus === query.status)
     .filter((item) => !query.riskLevel || item.riskLevel === query.riskLevel)
     .filter((item) => !query.startDate || item.appointmentDate >= query.startDate)
@@ -120,9 +143,13 @@ export async function pageInterviewTasks(query: InterviewTaskQuery) {
 }
 
 export async function getInterviewTaskDetail(id: number) {
+  const interviewerStaffId = getCurrentInterviewerStaffId()
   const item = getMockAppointmentById(id)
   if (!item) {
     throw new Error('未找到初访任务')
+  }
+  if (item.interviewerId !== interviewerStaffId) {
+    throw new Error('无权查看其他初访员的任务')
   }
 
   const detail: InterviewTaskDetailVO = {
@@ -162,9 +189,13 @@ export async function getInterviewTaskDetail(id: number) {
 }
 
 export async function submitInterviewResult(id: number, data: InterviewResultRequest) {
+  const interviewerStaffId = getCurrentInterviewerStaffId()
   const item = getMockAppointmentById(id)
   if (!item) {
     throw new Error('未找到初访任务')
+  }
+  if (item.interviewerId !== interviewerStaffId) {
+    throw new Error('无权提交其他初访员的任务结果')
   }
   if (item.appointmentStatus !== 'APPROVED') {
     throw new Error('只有已通过的预约才能录入初访结果')
