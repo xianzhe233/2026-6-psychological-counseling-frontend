@@ -48,9 +48,9 @@
 - [x] 首访登记表页面。
 - [x] 知情同意书页面。
 - [x] 初访预约页面（当前为骨架页，已支持接收 `formId`）。
-- [ ] 可预约时间段选择组件。
-- [ ] 我的预约页面。
-- [ ] 我的通知页面。
+- [x] 可预约时间段选择组件。
+- [x] 我的预约页面。
+- [x] 我的通知页面。
 
 ### 阶段三：管理员端
 
@@ -323,6 +323,30 @@
 
 ---
 
+## 2026-06-08 review 修正 lcw 阶段4/5 学生页面
+
+### 完成内容
+- 在 `dev-qxz` 上同步 lcw 学生端“我的预约 / 我的通知”页面到最新 `dev` 基线并完成 review。
+- 修复我的预约页“新建预约”跳转到不存在路由 `/student/appointments/create` 的问题，改为正确跳转 `/student/appointment-create`。
+- 修复我的通知页筛选控件未透传 `notifyType` 参数，导致筛选 UI 存在但请求始终返回全量数据的问题。
+- 补齐通知类型映射，兼容预约驳回、预约撤销和系统通知等已有后端类型。
+
+### 影响文件
+- `src/views/student/MyAppointmentsView.vue`
+- `src/views/student/MyNotificationsView.vue`
+- `src/api/student.ts`
+- `docs/progress.md`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+- 学生端“我的预约 / 我的通知”已接入真实接口，但仍需后续联调更多真实通知产生场景。
+- 构建仍提示 `StatisticsView` chunk 超过 `500 kB` 警戒线，本次未继续处理该非阻塞告警。
+
+---
+
 ## 2026-06-08 阶段三：统计看板与日志页面
 
 ### 完成内容
@@ -421,3 +445,61 @@
 ### 遗留问题
 - 当前使用 mock 数据，后端接口尚未完全实现。
 - 需要与后端联调确认预约容量校验和冲突处理逻辑。
+
+## 2026-06-08 学生端初访预约后端接口（阶段4补充）
+
+### 完成内容
+- 实现学生预约控制器 `StudentAppointmentController`，添加 `POST /api/student/appointments` 接口。
+- 创建 `FirstVisitAppointment` 实体类，映射 `first_visit_appointment` 表。
+- 创建 `AppointmentCreateRequest` DTO 类，定义预约创建请求参数。
+- 创建 `StudentAppointmentMapper` 接口，实现预约记录插入和查询。
+- 创建 `StudentAppointmentService` 服务类，实现预约创建逻辑，包括：
+  - 验证学生是否有未完成的预约（防止重复预约）
+  - 生成预约编号
+  - 创建预约记录
+  - 返回预约结果
+
+### 影响文件
+- `src/main/java/com/tyut/psychological/student/entity/FirstVisitAppointment.java`
+- `src/main/java/com/tyut/psychological/student/dto/AppointmentCreateRequest.java`
+- `src/main/java/com/tyut/psychological/student/mapper/StudentAppointmentMapper.java`
+- `src/main/java/com/tyut/psychological/student/service/StudentAppointmentService.java`
+- `src/main/java/com/tyut/psychological/student/controller/StudentAppointmentController.java`
+
+### 验证方式
+- `mvnw.cmd compile`
+- 启动后端服务
+- 使用 Postman 或前端页面测试 `POST /api/student/appointments` 接口
+- 测试重复预约拦截（应返回 409 错误）
+- 测试正常预约流程
+
+### 遗留问题
+- 当前预约创建逻辑简化，未实现完整的值班安排校验和容量更新。
+- 需要与前端联调确认预约参数传递和错误处理。
+
+---
+
+## 2026-06-08 学生端预约与通知页面（阶段二补充）
+
+### 完成内容
+
+- 实现学生端"我的预约页面" `MyAppointmentsView.vue`，支持预约列表展示、状态筛选、分页、撤销预约功能。
+- 实现学生端"我的通知页面" `MyNotificationsView.vue`，支持通知列表展示、类型筛选、分页功能。
+- 两个页面均使用远程分页，调用后端真实接口。
+- 预约页面支持按状态（待审核、已通过、已驳回、已撤销、已完成）筛选。
+- 通知页面支持按类型（预约审核通过、预约改约通知、咨询安排通知、咨询取消通知）筛选。
+
+### 影响文件
+
+- `src/views/student/MyAppointmentsView.vue`
+- `src/views/student/MyNotificationsView.vue`
+
+### 验证方式
+
+- `npm run typecheck`
+- `npm run build`
+- 学生账号登录后访问"我的预约"和"我的通知"页面
+
+### 遗留问题
+
+- 可预约时间段选择组件已集成在 `AppointmentCreateView.vue` 中，暂无需单独抽取。

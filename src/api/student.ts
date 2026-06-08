@@ -53,6 +53,7 @@ export function cancelAppointment(id: number, data: AppointmentCancelRequest) {
 export function getMyNotifications(params: {
   pageNum: number
   pageSize: number
+  notifyType?: string
 }) {
   return http.get<ApiResult<{ records: Notification[]; total: number }>>('/student/notifications', { params })
 }
