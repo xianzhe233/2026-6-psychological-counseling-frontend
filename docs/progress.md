@@ -421,3 +421,34 @@
 ### 遗留问题
 - 当前使用 mock 数据，后端接口尚未完全实现。
 - 需要与后端联调确认预约容量校验和冲突处理逻辑。
+
+## 2026-06-08 学生端初访预约后端接口（阶段4补充）
+
+### 完成内容
+- 实现学生预约控制器 `StudentAppointmentController`，添加 `POST /api/student/appointments` 接口。
+- 创建 `FirstVisitAppointment` 实体类，映射 `first_visit_appointment` 表。
+- 创建 `AppointmentCreateRequest` DTO 类，定义预约创建请求参数。
+- 创建 `StudentAppointmentMapper` 接口，实现预约记录插入和查询。
+- 创建 `StudentAppointmentService` 服务类，实现预约创建逻辑，包括：
+  - 验证学生是否有未完成的预约（防止重复预约）
+  - 生成预约编号
+  - 创建预约记录
+  - 返回预约结果
+
+### 影响文件
+- `src/main/java/com/tyut/psychological/student/entity/FirstVisitAppointment.java`
+- `src/main/java/com/tyut/psychological/student/dto/AppointmentCreateRequest.java`
+- `src/main/java/com/tyut/psychological/student/mapper/StudentAppointmentMapper.java`
+- `src/main/java/com/tyut/psychological/student/service/StudentAppointmentService.java`
+- `src/main/java/com/tyut/psychological/student/controller/StudentAppointmentController.java`
+
+### 验证方式
+- `mvnw.cmd compile`
+- 启动后端服务
+- 使用 Postman 或前端页面测试 `POST /api/student/appointments` 接口
+- 测试重复预约拦截（应返回 409 错误）
+- 测试正常预约流程
+
+### 遗留问题
+- 当前预约创建逻辑简化，未实现完整的值班安排校验和容量更新。
+- 需要与前端联调确认预约参数传递和错误处理。
