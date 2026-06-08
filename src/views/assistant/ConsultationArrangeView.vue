@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
@@ -18,6 +18,7 @@ import {
   arrangeFormalConsultation,
   getConsultationArrangeDetail,
   getConsultationCounselorOptions,
+  getConsultationQueueOptions,
   getConsultationRoomOptions,
   getConsultationTimeSlotOptions,
 } from '@/api/assistant'
@@ -28,11 +29,12 @@ const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 
-const queueId = computed(() => Number(route.params.id || 0))
+const queueId = computed(() => Number(route.params.id || selectedQueueId.value || 0))
 const loading = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
 const detail = ref<ConsultationArrangeDetailVO | null>(null)
+const queueOptions = ref<OptionItem[]>([])
 const counselorOptions = ref<OptionItem[]>([])
 const roomOptions = ref<OptionItem[]>([])
 const timeSlotOptions = ref<OptionItem[]>([])
@@ -44,6 +46,7 @@ const form = reactive<FormalConsultationArrangeRequest>({
   roomId: 0,
   remark: '',
 })
+const selectedQueueId = ref<number | null>(Number(route.params.id || 0) || null)
 
 const selectedCounselor = computed(() => counselorOptions.value.find(item => item.value === form.counselorId))
 const selectedRoom = computed(() => roomOptions.value.find(item => item.value === form.roomId))
@@ -56,7 +59,16 @@ const arrangePreview = computed(() => {
   return `${detail.value.studentName} 将于 ${form.consultationDate} ${selectedSlot.value.label} 在 ${selectedRoom.value.label} 接受 ${selectedCounselor.value.label} 的正式咨询`
 })
 
+function resetForm() {
+  form.counselorId = 0
+  form.consultationDate = ''
+  form.slotId = 0
+  form.roomId = 0
+  form.remark = ''
+}
+
 function fillFormFromArrangedInfo() {
+  resetForm()
   const arranged = detail.value?.arrangedInfo
   if (!arranged) return
 
@@ -67,25 +79,39 @@ function fillFormFromArrangedInfo() {
   form.remark = arranged.remark || ''
 }
 
-async function fetchPageData() {
+async function fetchBaseOptions() {
+  try {
+    const [queues, counselors, rooms, slots] = await Promise.all([
+      getConsultationQueueOptions(),
+      getConsultationCounselorOptions(),
+      getConsultationRoomOptions(),
+      getConsultationTimeSlotOptions(),
+    ])
+    queueOptions.value = queues
+    counselorOptions.value = counselors
+    roomOptions.value = rooms
+    timeSlotOptions.value = slots
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '加载基础选项失败')
+  }
+}
+
+async function fetchDetail() {
+  detail.value = null
+  resetForm()
+
   if (!queueId.value) {
     return
   }
 
   loading.value = true
+  submitError.value = ''
   try {
-    const [detailResult, counselors, rooms, slots] = await Promise.all([
-      getConsultationArrangeDetail(queueId.value),
-      getConsultationCounselorOptions(),
-      getConsultationRoomOptions(),
-      getConsultationTimeSlotOptions(),
-    ])
-    detail.value = detailResult
-    counselorOptions.value = counselors
-    roomOptions.value = rooms
-    timeSlotOptions.value = slots
+    detail.value = await getConsultationArrangeDetail(queueId.value)
     fillFormFromArrangedInfo()
   } catch (error) {
+    detail.value = null
+    resetForm()
     message.error(error instanceof Error ? error.message : '加载咨询安排信息失败')
   } finally {
     loading.value = false
@@ -110,6 +136,19 @@ function validateForm() {
     return false
   }
   return true
+}
+
+function handleQueueChange(event: Event) {
+  const value = Number((event.target as HTMLSelectElement).value || 0)
+  selectedQueueId.value = value || null
+  detail.value = null
+  resetForm()
+  submitError.value = ''
+  if (value) {
+    router.replace(`/assistant/queue/${value}/arrange`)
+  } else {
+    router.replace('/assistant/arrange')
+  }
 }
 
 function handleBack() {
@@ -140,8 +179,18 @@ async function handleSubmit() {
   }
 }
 
-onMounted(() => {
-  void fetchPageData()
+watch(
+  () => route.params.id,
+  (value) => {
+    const nextId = Number(value || 0)
+    selectedQueueId.value = nextId || null
+    void fetchDetail()
+  },
+)
+
+onMounted(async () => {
+  await fetchBaseOptions()
+  await fetchDetail()
 })
 </script>
 
@@ -154,7 +203,17 @@ onMounted(() => {
       <n-button @click="handleBack">返回队列</n-button>
     </PageHeader>
 
-    <n-empty v-if="!queueId" description="请先从咨询队列中选择需要安排的学生">
+    <n-card title="选择队列记录" style="margin-bottom: 16px">
+      <label class="form-field">
+        <span>待安排学生</span>
+        <select :value="selectedQueueId ?? 0" @change="handleQueueChange">
+          <option :value="0">请先选择队列记录</option>
+          <option v-for="option in queueOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+    </n-card>
+
+    <n-empty v-if="!queueId" description="请从上方选择需要安排的队列记录，或从咨询队列页点击“安排咨询”进入">
       <template #extra>
         <n-button type="primary" @click="handleBack">前往咨询队列</n-button>
       </template>

@@ -16,6 +16,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 import {
   downloadMyCaseReportWord,
+  getCaseReport,
   getCounselorProblemTypeOptions,
   getCounselorStudentOptions,
   pageMyCaseReports,
@@ -207,6 +208,18 @@ function validateForm(isSubmit: boolean) {
   return true
 }
 
+function validateExistingReportForSubmit(report: CaseReportVO) {
+  if (!report.effectSelfRating) {
+    message.warning('提交报告前请选择咨询效果自评')
+    return false
+  }
+  if ((report.caseSummary?.trim().length ?? 0) < 20) {
+    message.warning('提交报告前个案总结建议不少于 20 字')
+    return false
+  }
+  return true
+}
+
 async function persistReport(nextStatus: ReportStatus) {
   const isSubmit = nextStatus === 'SUBMITTED'
   if (!validateForm(isSubmit)) return
@@ -249,6 +262,10 @@ function handleEdit(row: CaseReportVO) {
 
 async function handleSubmitReport(id: number) {
   try {
+    const report = await getCaseReport(id)
+    if (!validateExistingReportForSubmit(report)) {
+      return
+    }
     await submitCaseReport(id)
     message.success('结案报告已提交')
     await fetchData()

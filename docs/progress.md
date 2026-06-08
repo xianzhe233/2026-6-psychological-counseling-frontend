@@ -276,6 +276,29 @@
 
 ---
 
+## 2026-06-08 review 修正 zyt 阶段1/2
+
+### 完成内容
+- 在 `dev-qxz` 上同步 zyt 的心理助理与咨询师阶段页面到最新 `dev` 基线，准备统一 review 与验收。
+- 修复 `ConsultationArrangeView`：支持从菜单直达后手动选择队列记录，不再只能从队列表跳转进入。
+- 修复咨询安排页在同页切换不同队列记录时表单、详情和安排预览残留上一条记录数据的问题。 
+- 修复结案报告列表中“直接提交草稿”会绕过必填与最小字数校验的问题。
+
+### 影响文件
+- `src/api/assistant.ts`
+- `src/views/assistant/ConsultationArrangeView.vue`
+- `src/views/counselor/CaseReportEditView.vue`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+- 当前阶段仍以前端 mock 数据演示为主，未接入真实助理/咨询师后端接口。
+- 待用户验收通过后，再按协作规范提交、推送并创建 PR。
+
+---
+
 ## 后续更新规则
 
 ## 2026-06-06 前端最小骨架
@@ -286,7 +309,7 @@
 - 创建 `AuthLayout`、`MainLayout`、`BlankLayout`。
 - 创建 `AppSidebar`、`AppHeader`、`PageHeader`、`StatusTag`、`RiskTag`。
 - 创建登录页、工作台、403/404 页面和五类角色关键空路由。
-- 配置 Vite 代理到 `http://localhost:8080`。
+- 配置 Vite 代理到 `http://127.0.0.1:24681`。
 
 ### 影响文件
 - `package.json`
@@ -297,7 +320,7 @@
 - `npm install`
 - `npm run build`
 - `npm run typecheck`
-- 前端 dev server 通过 `http://127.0.0.1:5174/api/health` 成功代理后端接口
+- 前端 dev server 通过 `http://127.0.0.1:24680/api/health` 成功代理后端接口
 
 ### 遗留问题
 - 仅完成骨架和关键空页面，学生端、管理员端、初访员端、助理端、咨询师端的业务页面仍待继续实现。

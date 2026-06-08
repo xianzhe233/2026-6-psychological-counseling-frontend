@@ -172,6 +172,17 @@ function getOptionLabel(options: OptionItem[], value: number) {
   return options.find(item => item.value === value)?.label
 }
 
+function listQueueRecords() {
+  return getMockAppointments()
+    .map(item => buildQueueRecord(item.id))
+    .filter((item): item is ConsultationQueueVO => Boolean(item))
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'WAITING' ? -1 : 1
+      if (a.priorityScore !== b.priorityScore) return b.priorityScore - a.priorityScore
+      return a.enqueueTime.localeCompare(b.enqueueTime)
+    })
+}
+
 function parseSlotLabel(label: string) {
   const match = label.match(/^(.*?)（(.+?)-(.+?)）$/)
   return {
@@ -183,9 +194,7 @@ function parseSlotLabel(label: string) {
 
 export async function pageConsultationQueue(query: ConsultationQueueQuery) {
   const keyword = normalizeKeyword(query.keyword)
-  const records = getMockAppointments()
-    .map(item => buildQueueRecord(item.id))
-    .filter((item): item is ConsultationQueueVO => Boolean(item))
+  const records = listQueueRecords()
     .filter((item) => {
       const matchKeyword = !keyword || [
         item.studentName,
@@ -198,11 +207,6 @@ export async function pageConsultationQueue(query: ConsultationQueueQuery) {
       const matchProblem = query.problemTypeId == null || item.problemTypeId === query.problemTypeId
       const matchStatus = !query.status || item.status === query.status
       return matchKeyword && matchCrisis && matchProblem && matchStatus
-    })
-    .sort((a, b) => {
-      if (a.status !== b.status) return a.status === 'WAITING' ? -1 : 1
-      if (a.priorityScore !== b.priorityScore) return b.priorityScore - a.priorityScore
-      return a.enqueueTime.localeCompare(b.enqueueTime)
     })
 
   return respondMock(paginate(records, query.pageNum, query.pageSize))
@@ -252,6 +256,15 @@ export async function getConsultationProblemTypeOptions() {
       }
       return acc
     }, [])
+
+  return respondMock(options)
+}
+
+export async function getConsultationQueueOptions() {
+  const options = listQueueRecords().map<OptionItem>(item => ({
+    label: `${item.studentName}（${item.studentNo}）- ${item.problemTypeLabel}`,
+    value: item.queueId,
+  }))
 
   return respondMock(options)
 }
