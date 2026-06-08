@@ -299,6 +299,30 @@
 
 ---
 
+## 2026-06-08 review 修正 zyt 阶段3统计与日志页面
+
+### 完成内容
+- 先将 zyt 的前端 PR #23 合入远端 `dev`，再将本地 `dev-qxz` 同步到最新 `origin/dev` 基线后继续 review。
+- 将统计看板、通知日志、操作日志 3 个页面的筛选区改为 `Naive UI` 表单控件，和现有管理员页面交互风格保持一致。
+- 修复统计看板在“筛到无数据后再次恢复有数据”场景下，ECharts 实例可能仍绑定旧 DOM 的稳定性问题。
+- 将统计页 ECharts 从全量引入改为按需引入，显著降低 `StatisticsView` 构建产物体积。
+
+### 影响文件
+- `src/views/admin/StatisticsView.vue`
+- `src/views/admin/NotificationLogView.vue`
+- `src/views/admin/OperationLogView.vue`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+- 构建后 `StatisticsView` chunk 由约 `1068 kB` 降至约 `549 kB`
+
+### 遗留问题
+- 当前统计与日志数据仍为 mock 数据，后续需等待后端阶段6/7接口联调替换。
+- 构建仍提示 `StatisticsView` chunk 超过 `500 kB` 警戒线，但已较原始实现明显缩小；如后续继续扩展统计页，可再拆分公共图表逻辑或做更细粒度分包。
+
+---
+
 ## 2026-06-08 阶段三：统计看板与日志页面
 
 ### 完成内容

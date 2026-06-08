@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import * as echarts from 'echarts'
+import dayjs from 'dayjs'
+import { BarChart, LineChart, PieChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from 'echarts/components'
+import { init, use, type ECharts } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
+  NDatePicker,
   NEmpty,
+  NForm,
+  NFormItem,
   NGi,
   NGrid,
+  NSelect,
+  NSpace,
   NStatistic,
   useMessage,
 } from 'naive-ui'
@@ -24,6 +33,8 @@ import {
 } from '@/api/statistics'
 import type { BarChartVO, LineChartVO, OverviewStatsVO, PieItem, StatisticsQuery } from '@/api/statistics'
 
+use([BarChart, LineChart, PieChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, CanvasRenderer])
+
 const message = useMessage()
 
 const loading = ref(false)
@@ -37,21 +48,25 @@ const counselorOptions = ref<OptionItem[]>([])
 const problemTypeOptions = ref<OptionItem[]>([])
 
 const searchForm = reactive({
-  startDate: '',
-  endDate: '',
+  dateRange: null as [number, number] | null,
   counselorId: null as number | null,
   problemTypeId: null as number | null,
 })
 
-const trendChartRef = ref<HTMLDivElement>()
-const pieChartRef = ref<HTMLDivElement>()
-const crisisChartRef = ref<HTMLDivElement>()
-const workloadChartRef = ref<HTMLDivElement>()
+const trendChartRef = ref<HTMLDivElement | null>(null)
+const pieChartRef = ref<HTMLDivElement | null>(null)
+const crisisChartRef = ref<HTMLDivElement | null>(null)
+const workloadChartRef = ref<HTMLDivElement | null>(null)
 
-let trendChart: echarts.ECharts | null = null
-let pieChart: echarts.ECharts | null = null
-let crisisChart: echarts.ECharts | null = null
-let workloadChart: echarts.ECharts | null = null
+let trendChart: ECharts | null = null
+let pieChart: ECharts | null = null
+let crisisChart: ECharts | null = null
+let workloadChart: ECharts | null = null
+
+const hasTrendData = computed(() => !!monthlyTrend.value && monthlyTrend.value.series.some(item => item.data.some(value => value > 0)))
+const hasProblemTypeData = computed(() => problemTypes.value.some(item => item.value > 0))
+const hasCrisisData = computed(() => !!crisisLevels.value && crisisLevels.value.series.some(item => item.data.some(value => value > 0)))
+const hasWorkloadData = computed(() => !!counselorWorkload.value && counselorWorkload.value.series.some(item => item.data.some(value => value > 0)))
 
 const overviewCards = computed(() => {
   const data = overview.value
@@ -67,22 +82,33 @@ const overviewCards = computed(() => {
 
 function buildQuery(): StatisticsQuery {
   return {
-    startDate: searchForm.startDate || undefined,
-    endDate: searchForm.endDate || undefined,
+    startDate: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD') : undefined,
+    endDate: searchForm.dateRange ? dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD') : undefined,
     counselorId: searchForm.counselorId ?? undefined,
     problemTypeId: searchForm.problemTypeId ?? undefined,
   }
 }
 
-function disposeChart(instance: echarts.ECharts | null) {
-  instance?.dispose()
+function ensureChart(
+  container: HTMLDivElement | null,
+  current: ECharts | null,
+  setter: (chart: ECharts | null) => void,
+) {
+  if (!container) return null
+  if (!current || current.getDom() !== container) {
+    current?.dispose()
+    const nextChart = init(container)
+    setter(nextChart)
+    return nextChart
+  }
+  return current
 }
 
 function disposeAllCharts() {
-  disposeChart(trendChart)
-  disposeChart(pieChart)
-  disposeChart(crisisChart)
-  disposeChart(workloadChart)
+  trendChart?.dispose()
+  pieChart?.dispose()
+  crisisChart?.dispose()
+  workloadChart?.dispose()
   trendChart = null
   pieChart = null
   crisisChart = null
@@ -90,27 +116,21 @@ function disposeAllCharts() {
 }
 
 function renderTrendChart() {
-  if (!trendChartRef.value) return
-  if (!trendChart) {
-    trendChart = echarts.init(trendChartRef.value)
-  }
-
-  const data = monthlyTrend.value
-  const hasData = !!data && data.series.some(item => item.data.some(value => value > 0))
-
-  if (!hasData) {
-    trendChart.clear()
+  const chart = ensureChart(trendChartRef.value, trendChart, nextChart => { trendChart = nextChart })
+  if (!chart) return
+  if (!hasTrendData.value || !monthlyTrend.value) {
+    chart.clear()
     return
   }
 
-  trendChart.setOption({
+  chart.setOption({
     color: ['#18A058', '#2080F0'],
     tooltip: { trigger: 'axis' },
     legend: { bottom: 0 },
     grid: { left: 40, right: 24, top: 24, bottom: 48 },
-    xAxis: { type: 'category', data: data!.xAxis },
+    xAxis: { type: 'category', data: monthlyTrend.value.xAxis },
     yAxis: { type: 'value', minInterval: 1 },
-    series: data!.series.map(item => ({
+    series: monthlyTrend.value.series.map(item => ({
       name: item.name,
       type: 'line',
       smooth: true,
@@ -120,18 +140,14 @@ function renderTrendChart() {
 }
 
 function renderPieChart() {
-  if (!pieChartRef.value) return
-  if (!pieChart) {
-    pieChart = echarts.init(pieChartRef.value)
-  }
-
-  const hasData = problemTypes.value.some(item => item.value > 0)
-  if (!hasData) {
-    pieChart.clear()
+  const chart = ensureChart(pieChartRef.value, pieChart, nextChart => { pieChart = nextChart })
+  if (!chart) return
+  if (!hasProblemTypeData.value) {
+    chart.clear()
     return
   }
 
-  pieChart.setOption({
+  chart.setOption({
     color: ['#18A058', '#2080F0', '#F0A020', '#D03050', '#8A2BE2', '#36CFC9'],
     tooltip: { trigger: 'item' },
     legend: { bottom: 0, type: 'scroll' },
@@ -147,21 +163,16 @@ function renderPieChart() {
 }
 
 function renderBarChart(
-  instance: echarts.ECharts | null,
-  container: HTMLDivElement | undefined,
+  container: HTMLDivElement | null,
+  current: ECharts | null,
   data: BarChartVO | null,
+  hasData: boolean,
   title: string,
-  setter: (chart: echarts.ECharts | null) => void,
+  setter: (chart: ECharts | null) => void,
 ) {
-  if (!container) return
-  let chart = instance
-  if (!chart) {
-    chart = echarts.init(container)
-    setter(chart)
-  }
-
-  const hasData = !!data && data.series.some(item => item.data.some(value => value > 0))
-  if (!hasData) {
+  const chart = ensureChart(container, current, setter)
+  if (!chart) return
+  if (!hasData || !data) {
     chart.clear()
     return
   }
@@ -172,9 +183,9 @@ function renderBarChart(
     tooltip: { trigger: 'axis' },
     legend: { bottom: 0 },
     grid: { left: 40, right: 24, top: 40, bottom: 48 },
-    xAxis: { type: 'category', data: data!.xAxis },
+    xAxis: { type: 'category', data: data.xAxis },
     yAxis: { type: 'value', minInterval: 1 },
-    series: data!.series.map(item => ({
+    series: data.series.map(item => ({
       name: item.name,
       type: 'bar',
       barMaxWidth: 36,
@@ -186,8 +197,8 @@ function renderBarChart(
 function renderAllCharts() {
   renderTrendChart()
   renderPieChart()
-  renderBarChart(crisisChart, crisisChartRef.value, crisisLevels.value, '危机等级分布', chart => { crisisChart = chart })
-  renderBarChart(workloadChart, workloadChartRef.value, counselorWorkload.value, '咨询师工作量', chart => { workloadChart = chart })
+  renderBarChart(crisisChartRef.value, crisisChart, crisisLevels.value, hasCrisisData.value, '危机等级分布', nextChart => { crisisChart = nextChart })
+  renderBarChart(workloadChartRef.value, workloadChart, counselorWorkload.value, hasWorkloadData.value, '咨询师工作量', nextChart => { workloadChart = nextChart })
 }
 
 function handleResize() {
@@ -195,6 +206,19 @@ function handleResize() {
   pieChart?.resize()
   crisisChart?.resize()
   workloadChart?.resize()
+}
+
+async function loadFilterOptions() {
+  try {
+    const [counselors, problemTypesData] = await Promise.all([
+      getStaffOptions('COUNSELOR'),
+      getConsultationProblemTypeOptions(),
+    ])
+    counselorOptions.value = counselors
+    problemTypeOptions.value = problemTypesData
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '加载筛选选项失败')
+  }
 }
 
 async function fetchData() {
@@ -227,38 +251,15 @@ function handleSearch() {
 }
 
 function handleReset() {
-  searchForm.startDate = ''
-  searchForm.endDate = ''
+  searchForm.dateRange = null
   searchForm.counselorId = null
   searchForm.problemTypeId = null
   handleSearch()
 }
 
-function handleCounselorChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  searchForm.counselorId = value ? Number(value) : null
-  handleSearch()
-}
-
-function handleProblemTypeChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  searchForm.problemTypeId = value ? Number(value) : null
-  handleSearch()
-}
-
 onMounted(async () => {
-  try {
-    const [counselors, problemTypes] = await Promise.all([
-      getStaffOptions('COUNSELOR'),
-      getConsultationProblemTypeOptions(),
-    ])
-    counselorOptions.value = counselors
-    problemTypeOptions.value = problemTypes
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载筛选选项失败')
-  }
-
   window.addEventListener('resize', handleResize)
+  await loadFilterOptions()
   await fetchData()
 })
 
@@ -267,7 +268,7 @@ onBeforeUnmount(() => {
   disposeAllCharts()
 })
 
-watch([monthlyTrend, problemTypes, crisisLevels, counselorWorkload], async () => {
+watch([monthlyTrend, problemTypes, crisisLevels, counselorWorkload, hasTrendData, hasProblemTypeData, hasCrisisData, hasWorkloadData], async () => {
   await nextTick()
   renderAllCharts()
 })
@@ -281,81 +282,93 @@ watch([monthlyTrend, problemTypes, crisisLevels, counselorWorkload], async () =>
     />
 
     <n-card title="筛选条件">
-      <div class="search-panel">
-        <label class="search-field">
-          <span>日期范围</span>
-          <div class="date-range">
-            <input v-model="searchForm.startDate" type="date" @change="handleSearch">
-            <span>至</span>
-            <input v-model="searchForm.endDate" type="date" @change="handleSearch">
-          </div>
-        </label>
+      <n-form label-placement="top">
+        <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
+          <n-gi span="1 m:2">
+            <n-form-item label="日期范围">
+              <n-date-picker
+                v-model:value="searchForm.dateRange"
+                type="daterange"
+                clearable
+                style="width: 100%"
+              />
+            </n-form-item>
+          </n-gi>
 
-        <label class="search-field">
-          <span>咨询师</span>
-          <select :value="searchForm.counselorId ?? ''" @change="handleCounselorChange">
-            <option value="">全部</option>
-            <option v-for="option in counselorOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+          <n-gi span="1 m:1">
+            <n-form-item label="咨询师">
+              <n-select
+                v-model:value="searchForm.counselorId"
+                :options="counselorOptions"
+                clearable
+                placeholder="全部咨询师"
+              />
+            </n-form-item>
+          </n-gi>
 
-        <label class="search-field">
-          <span>问题类型</span>
-          <select :value="searchForm.problemTypeId ?? ''" @change="handleProblemTypeChange">
-            <option value="">全部</option>
-            <option v-for="option in problemTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-      </div>
+          <n-gi span="1 m:1">
+            <n-form-item label="问题类型">
+              <n-select
+                v-model:value="searchForm.problemTypeId"
+                :options="problemTypeOptions"
+                clearable
+                placeholder="全部问题类型"
+              />
+            </n-form-item>
+          </n-gi>
+        </n-grid>
+      </n-form>
 
       <div class="search-actions">
-        <n-button @click="handleReset">重置</n-button>
-        <n-button type="primary" :loading="loading" @click="handleSearch">刷新统计</n-button>
+        <n-space>
+          <n-button @click="handleReset">重置</n-button>
+          <n-button type="primary" :loading="loading" @click="handleSearch">刷新统计</n-button>
+        </n-space>
       </div>
     </n-card>
 
-    <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" style="margin-top: 16px">
-      <n-gi v-for="card in overviewCards" :key="card.label">
+    <n-grid :cols="1" :x-gap="16" :y-gap="16" responsive="screen" item-responsive style="margin-top: 16px">
+      <n-gi v-for="card in overviewCards" :key="card.label" span="1 s:1 m:2 l:2 xl:1">
         <n-card>
           <n-statistic :label="card.label" :value="card.value" />
         </n-card>
       </n-gi>
     </n-grid>
 
-    <n-grid :cols="2" :x-gap="16" :y-gap="16" responsive="screen" style="margin-top: 16px">
-      <n-gi>
+    <n-grid :cols="1" :x-gap="16" :y-gap="16" responsive="screen" item-responsive style="margin-top: 16px">
+      <n-gi span="1 xl:1">
         <n-card title="月度趋势">
-          <div v-if="monthlyTrend && monthlyTrend.series.some(item => item.data.some(value => value > 0))" ref="trendChartRef" class="chart-box" />
-          <n-empty v-else description="暂无趋势数据" />
+          <div class="chart-panel">
+            <div v-show="hasTrendData" ref="trendChartRef" class="chart-box" />
+            <n-empty v-if="!hasTrendData" description="暂无趋势数据" class="chart-empty" />
+          </div>
         </n-card>
       </n-gi>
 
-      <n-gi>
+      <n-gi span="1 xl:1">
         <n-card title="问题类型分布">
-          <div v-if="problemTypes.some(item => item.value > 0)" ref="pieChartRef" class="chart-box" />
-          <n-empty v-else description="暂无分布数据" />
+          <div class="chart-panel">
+            <div v-show="hasProblemTypeData" ref="pieChartRef" class="chart-box" />
+            <n-empty v-if="!hasProblemTypeData" description="暂无分布数据" class="chart-empty" />
+          </div>
         </n-card>
       </n-gi>
 
-      <n-gi>
+      <n-gi span="1 xl:1">
         <n-card title="危机等级分布">
-          <div
-            v-if="crisisLevels && crisisLevels.series.some(item => item.data.some(value => value > 0))"
-            ref="crisisChartRef"
-            class="chart-box"
-          />
-          <n-empty v-else description="暂无危机等级数据" />
+          <div class="chart-panel">
+            <div v-show="hasCrisisData" ref="crisisChartRef" class="chart-box" />
+            <n-empty v-if="!hasCrisisData" description="暂无危机等级数据" class="chart-empty" />
+          </div>
         </n-card>
       </n-gi>
 
-      <n-gi>
+      <n-gi span="1 xl:1">
         <n-card title="咨询师工作量">
-          <div
-            v-if="counselorWorkload && counselorWorkload.series.some(item => item.data.some(value => value > 0))"
-            ref="workloadChartRef"
-            class="chart-box"
-          />
-          <n-empty v-else description="暂无工作量数据" />
+          <div class="chart-panel">
+            <div v-show="hasWorkloadData" ref="workloadChartRef" class="chart-box" />
+            <n-empty v-if="!hasWorkloadData" description="暂无工作量数据" class="chart-empty" />
+          </div>
         </n-card>
       </n-gi>
     </n-grid>
@@ -367,49 +380,24 @@ watch([monthlyTrend, problemTypes, crisisLevels, counselorWorkload], async () =>
   padding: 16px;
 }
 
-.search-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.search-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #4b5563;
-  font-size: 14px;
-}
-
-.search-field input,
-.search-field select {
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.date-range {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.date-range input {
-  min-width: 0;
-  flex: 1;
-}
-
 .search-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
+}
+
+.chart-panel {
+  min-height: 340px;
 }
 
 .chart-box {
   width: 100%;
   height: 340px;
+}
+
+.chart-empty {
+  display: flex;
+  min-height: 340px;
+  align-items: center;
+  justify-content: center;
 }
 </style>

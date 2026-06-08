@@ -1,9 +1,18 @@
 <script setup lang="ts">
+import dayjs from 'dayjs'
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
   NCard,
   NDataTable,
+  NDatePicker,
+  NForm,
+  NFormItem,
+  NGrid,
+  NGi,
+  NInput,
+  NSelect,
+  NSpace,
   NTag,
   useMessage,
 } from 'naive-ui'
@@ -11,7 +20,7 @@ import type { DataTableColumns } from 'naive-ui'
 
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getNotifyTypeLabel, pageNotificationLogs } from '@/api/logs'
-import type { NotificationLogVO } from '@/api/logs'
+import type { NotificationLogQuery, NotificationLogVO } from '@/api/logs'
 
 const message = useMessage()
 
@@ -22,8 +31,7 @@ const searchForm = reactive({
   keyword: '',
   notifyType: null as string | null,
   sendStatus: null as 'SUCCESS' | 'FAILED' | null,
-  startTime: '',
-  endTime: '',
+  dateRange: null as [number, number] | null,
 })
 
 const pagination = reactive({
@@ -86,18 +94,22 @@ const columns: DataTableColumns<NotificationLogVO> = [
   { title: '发送时间', key: 'sendTime', width: 160 },
 ]
 
+function buildQuery(): NotificationLogQuery {
+  return {
+    pageNum: pagination.page,
+    pageSize: pagination.pageSize,
+    keyword: searchForm.keyword.trim() || undefined,
+    notifyType: searchForm.notifyType ?? undefined,
+    sendStatus: searchForm.sendStatus ?? undefined,
+    startTime: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD') : undefined,
+    endTime: searchForm.dateRange ? dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD') : undefined,
+  }
+}
+
 async function fetchData() {
   loading.value = true
   try {
-    const result = await pageNotificationLogs({
-      pageNum: pagination.page,
-      pageSize: pagination.pageSize,
-      keyword: searchForm.keyword || undefined,
-      notifyType: searchForm.notifyType ?? undefined,
-      sendStatus: searchForm.sendStatus ?? undefined,
-      startTime: searchForm.startTime || undefined,
-      endTime: searchForm.endTime || undefined,
-    })
+    const result = await pageNotificationLogs(buildQuery())
     data.value = result.records
     pagination.itemCount = result.total
   } catch (error) {
@@ -116,21 +128,19 @@ function handleReset() {
   searchForm.keyword = ''
   searchForm.notifyType = null
   searchForm.sendStatus = null
-  searchForm.startTime = ''
-  searchForm.endTime = ''
+  searchForm.dateRange = null
   handleSearch()
 }
 
-function handleNotifyTypeChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  searchForm.notifyType = value || null
-  handleSearch()
+function handlePageChange(page: number) {
+  pagination.page = page
+  void fetchData()
 }
 
-function handleSendStatusChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  searchForm.sendStatus = value ? value as 'SUCCESS' | 'FAILED' : null
-  handleSearch()
+function handlePageSizeChange(pageSize: number) {
+  pagination.pageSize = pageSize
+  pagination.page = 1
+  void fetchData()
 }
 
 onMounted(() => {
@@ -146,46 +156,59 @@ onMounted(() => {
     />
 
     <n-card title="搜索筛选">
-      <div class="search-panel">
-        <label class="search-field">
-          <span>关键词</span>
-          <input
-            v-model="searchForm.keyword"
-            type="text"
-            placeholder="接收人 / 手机号 / 标题 / 内容"
-            @keyup.enter="handleSearch"
-          >
-        </label>
+      <n-form label-placement="top">
+        <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
+          <n-gi span="1 m:1">
+            <n-form-item label="关键词">
+              <n-input
+                v-model:value="searchForm.keyword"
+                placeholder="接收人 / 手机号 / 标题 / 内容"
+                clearable
+                @keyup.enter="handleSearch"
+              />
+            </n-form-item>
+          </n-gi>
 
-        <label class="search-field">
-          <span>通知类型</span>
-          <select :value="searchForm.notifyType ?? ''" @change="handleNotifyTypeChange">
-            <option value="">全部</option>
-            <option v-for="option in notifyTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+          <n-gi span="1 m:1">
+            <n-form-item label="通知类型">
+              <n-select
+                v-model:value="searchForm.notifyType"
+                :options="notifyTypeOptions"
+                clearable
+                placeholder="全部类型"
+              />
+            </n-form-item>
+          </n-gi>
 
-        <label class="search-field">
-          <span>发送状态</span>
-          <select :value="searchForm.sendStatus ?? ''" @change="handleSendStatusChange">
-            <option value="">全部</option>
-            <option v-for="option in sendStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+          <n-gi span="1 m:1">
+            <n-form-item label="发送状态">
+              <n-select
+                v-model:value="searchForm.sendStatus"
+                :options="sendStatusOptions"
+                clearable
+                placeholder="全部状态"
+              />
+            </n-form-item>
+          </n-gi>
 
-        <label class="search-field">
-          <span>时间范围</span>
-          <div class="date-range">
-            <input v-model="searchForm.startTime" type="date" @change="handleSearch">
-            <span>至</span>
-            <input v-model="searchForm.endTime" type="date" @change="handleSearch">
-          </div>
-        </label>
-      </div>
+          <n-gi span="1 m:2">
+            <n-form-item label="时间范围">
+              <n-date-picker
+                v-model:value="searchForm.dateRange"
+                type="daterange"
+                clearable
+                style="width: 100%"
+              />
+            </n-form-item>
+          </n-gi>
+        </n-grid>
+      </n-form>
 
       <div class="search-actions">
-        <n-button @click="handleReset">重置</n-button>
-        <n-button type="primary" @click="handleSearch">搜索</n-button>
+        <n-space>
+          <n-button @click="handleReset">重置</n-button>
+          <n-button type="primary" @click="handleSearch">搜索</n-button>
+        </n-space>
       </div>
     </n-card>
 
@@ -197,8 +220,8 @@ onMounted(() => {
         :data="data"
         :pagination="pagination"
         :row-key="row => row.id"
-        @update:page="page => { pagination.page = page; fetchData() }"
-        @update:page-size="pageSize => { pagination.pageSize = pageSize; pagination.page = 1; fetchData() }"
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
       />
     </n-card>
   </div>
@@ -209,44 +232,8 @@ onMounted(() => {
   padding: 16px;
 }
 
-.search-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.search-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #4b5563;
-  font-size: 14px;
-}
-
-.search-field input,
-.search-field select {
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.date-range {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.date-range input {
-  min-width: 0;
-  flex: 1;
-}
-
 .search-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
 }
 </style>
