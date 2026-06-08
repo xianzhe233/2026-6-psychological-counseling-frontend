@@ -1146,9 +1146,16 @@ export interface RealAppointmentAuditVO {
   studentName: string
   studentNo: string
   college: string
+  phone?: string
   formId: number
   mainProblem: string
-  problemDescription: string
+  problemDescription?: string
+  expectedHelp?: string
+  moodScore?: number
+  sleepScore?: number
+  stressScore?: number
+  selfHarmFlag?: number
+  emergencyFlag?: number
   riskScore: number
   riskLevel: string
   appointmentDate: string
@@ -1156,18 +1163,19 @@ export interface RealAppointmentAuditVO {
   slotName: string
   startTime: string
   endTime: string
-  roomId: number
-  roomName: string
-  interviewerId: number
-  interviewerName: string
-  dutyScheduleId: number
+  roomId?: number
+  roomName?: string
+  interviewerId?: number
+  interviewerName?: string
+  dutyScheduleId?: number
   appointmentStatus: string
   priorityFlag: number
-  auditAdminId: number
-  auditAdminName: string
-  auditTime: string
-  auditRemark: string
-  cancelReason: string
+  auditAdminId?: number
+  auditAdminName?: string
+  auditTime?: string
+  auditRemark?: string
+  cancelReason?: string
+  rejectReason?: string
   createTime: string
   updateTime: string
 }
@@ -1177,7 +1185,7 @@ export interface RealApproveRequest {
   interviewerId: number
   appointmentDate: string
   slotId: number
-  roomId: number
+  roomId?: number
   auditRemark?: string
 }
 
@@ -1185,7 +1193,7 @@ export interface RealRejectRequest {
   reason: string
 }
 
-export async function pageAuditAppointmentsReal(params: {
+export function pageAuditAppointmentsReal(params: {
   pageNum: number
   pageSize: number
   keyword?: string
@@ -1194,26 +1202,26 @@ export async function pageAuditAppointmentsReal(params: {
   startDate?: string
   endDate?: string
   priorityFlag?: number
-}): Promise<ApiResult<RealPageResult<RealAppointmentAuditVO>>> {
-  return http.get('/admin/first-visit/appointments', { params })
+}) {
+  return http.get<ApiResult<RealPageResult<RealAppointmentAuditVO>>>('/admin/first-visit/appointments', { params })
 }
 
-export async function getAuditAppointmentDetailReal(id: number): Promise<ApiResult<RealAppointmentAuditVO>> {
-  return http.get(`/admin/first-visit/appointments/${id}`)
+export function getAuditAppointmentDetailReal(id: number) {
+  return http.get<ApiResult<RealAppointmentAuditVO>>(`/admin/first-visit/appointments/${id}`)
 }
 
-export async function approveAppointmentReal(id: number, data: RealApproveRequest): Promise<ApiResult<void>> {
-  return http.post(`/admin/first-visit/appointments/${id}/approve`, data)
+export function approveAppointmentReal(id: number, data: RealApproveRequest) {
+  return http.post<ApiResult<void>>(`/admin/first-visit/appointments/${id}/approve`, data)
 }
 
-export async function rejectAppointmentReal(id: number, data: RealRejectRequest): Promise<ApiResult<void>> {
-  return http.post(`/admin/first-visit/appointments/${id}/reject`, data)
+export function rejectAppointmentReal(id: number, data: RealRejectRequest) {
+  return http.post<ApiResult<void>>(`/admin/first-visit/appointments/${id}/reject`, data)
 }
 
-export async function rescheduleAppointmentReal(id: number, data: RealApproveRequest): Promise<ApiResult<void>> {
-  return http.post(`/admin/first-visit/appointments/${id}/reschedule`, data)
+export function rescheduleAppointmentReal(id: number, data: RealApproveRequest) {
+  return http.post<ApiResult<void>>(`/admin/first-visit/appointments/${id}/reschedule`, data)
 }
 
-export async function markPriorityReal(id: number): Promise<ApiResult<void>> {
-  return http.post(`/admin/first-visit/appointments/${id}/priority`)
+export function markPriorityReal(id: number) {
+  return http.post<ApiResult<void>>(`/admin/first-visit/appointments/${id}/priority`)
 }
