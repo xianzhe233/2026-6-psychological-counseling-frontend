@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NAlert, NCard, NDatePicker, NButton, NSpace, NText, NIcon, NTag, NDivider } from 'naive-ui'
+import { NAlert, NCard, NDatePicker, NButton, NSpace, NText, NTag, NSpin } from 'naive-ui'
+import dayjs from 'dayjs'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getAvailableSlots, createAppointment } from '@/api/student'
 import type { AvailableSlot } from '@/types/student'
-import dayjs from 'dayjs'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,27 +28,24 @@ const dateValue = computed(() => {
   return dayjs(selectedDate.value).format('YYYY-MM-DD')
 })
 
-const isDateDisabled = (timestamp: number) => {
-  return dayjs(timestamp).isBefore(dayjs().startOf('day'))
-}
+const isDateDisabled = (timestamp: number) => dayjs(timestamp).isBefore(dayjs().startOf('day'))
 
 const handleDateChange = async (value: number | null) => {
   selectedDate.value = value
   selectedSlot.value = null
   errorMessage.value = null
-  
+
   if (!value) {
     availableSlots.value = []
     return
   }
-  
+
   loadingSlots.value = true
   try {
     const dateStr = dayjs(value).format('YYYY-MM-DD')
     const response = await getAvailableSlots(dateStr)
     availableSlots.value = response.data.data || []
   } catch (error: any) {
-    console.error('获取可预约时间段失败:', error)
     errorMessage.value = error.response?.data?.message || '获取可预约时间段失败，请稍后重试'
     availableSlots.value = []
   } finally {
@@ -67,15 +64,15 @@ const handleSubmit = async () => {
     errorMessage.value = '缺少首访登记表信息，请先完成首访登记'
     return
   }
-  
+
   if (!selectedSlot.value) {
     errorMessage.value = '请选择一个可预约的时间段'
     return
   }
-  
+
   submitting.value = true
   errorMessage.value = null
-  
+
   try {
     await createAppointment({
       formId: formId.value,
@@ -83,12 +80,11 @@ const handleSubmit = async () => {
       appointmentDate: selectedSlot.value.appointmentDate,
       slotId: selectedSlot.value.slotId,
       interviewerId: selectedSlot.value.interviewerId,
-      roomId: selectedSlot.value.roomId || 0
+      roomId: selectedSlot.value.roomId
     })
-    
+
     router.push('/student/appointments')
   } catch (error: any) {
-    console.error('提交预约失败:', error)
     errorMessage.value = error.response?.data?.message || '提交预约失败，请稍后重试'
   } finally {
     submitting.value = false
@@ -99,7 +95,7 @@ const handleSubmit = async () => {
 <template>
   <div class="appointment-create-view">
     <PageHeader title="初访预约" description="选择合适的时间段进行预约" />
-    
+
     <n-card class="appointment-card">
       <template #header>
         <n-text strong>预约说明</n-text>
@@ -110,14 +106,14 @@ const handleSubmit = async () => {
       <n-alert v-else type="warning" class="appointment-alert">
         当前未携带 formId。正式联调时应从“知情同意书”页面完成签署后进入此页。
       </n-alert>
-      
+
       <div class="appointment-info">
         <p>1. 预约提交后，管理员将进行审核，请保持手机畅通。</p>
-        <p>2. 如需撤销预约，请至少提前一天在"我的预约"页面操作。</p>
+        <p>2. 如需撤销预约，请至少提前一天在“我的预约”页面操作。</p>
         <p>3. 请如实填写首访登记表，信息仅用于心理咨询服务。</p>
       </div>
     </n-card>
-    
+
     <n-card class="appointment-card" title="选择预约日期">
       <n-date-picker
         v-model:value="selectedDate"
@@ -130,13 +126,13 @@ const handleSubmit = async () => {
         已选择日期：{{ dateValue }}
       </n-text>
     </n-card>
-    
+
     <n-card v-if="selectedDate" class="appointment-card" title="可预约时间段">
       <n-spin :show="loadingSlots">
         <div v-if="availableSlots.length === 0 && !loadingSlots" class="empty-slots">
           <n-text depth="3">当前日期暂无可用时间段，请选择其他日期。</n-text>
         </div>
-        
+
         <div v-else class="slots-grid">
           <div
             v-for="slot in availableSlots"
@@ -156,16 +152,16 @@ const handleSubmit = async () => {
                 {{ slot.available ? '可预约' : '不可用' }}
               </n-tag>
             </div>
-            
+
             <div class="slot-time">
               <n-text>{{ slot.startTime }} - {{ slot.endTime }}</n-text>
             </div>
-            
+
             <div class="slot-info">
               <n-text depth="3">咨询室：{{ slot.roomName || '未分配' }}</n-text>
               <n-text depth="3">剩余容量：{{ slot.remaining }}</n-text>
             </div>
-            
+
             <div v-if="!slot.available && slot.disabledReason" class="slot-reason">
               <n-text type="error" depth="3">{{ slot.disabledReason }}</n-text>
             </div>
@@ -173,7 +169,7 @@ const handleSubmit = async () => {
         </div>
       </n-spin>
     </n-card>
-    
+
     <n-card v-if="selectedSlot" class="appointment-card" title="预约预览">
       <div class="preview-content">
         <div class="preview-item">
@@ -194,11 +190,11 @@ const handleSubmit = async () => {
         </div>
       </div>
     </n-card>
-    
+
     <n-alert v-if="errorMessage" type="error" class="appointment-alert">
       {{ errorMessage }}
     </n-alert>
-    
+
     <div class="appointment-actions">
       <n-space>
         <n-button @click="router.back()">返回</n-button>
