@@ -375,6 +375,32 @@
 
 ---
 
+## 2026-06-08 阶段三：初访员任务与结果页面（assignment-ltb）
+
+### 完成内容
+- 完善 `InterviewTaskView.vue`：支持日期范围、状态、风险等级筛选；表格展示预约编号、学生姓名、学号、预约日期、时间段、地点、风险等级、状态；支持分页功能；状态为 APPROVED 时显示"录入结果"按钮，COMPLETED 时显示"查看结果"按钮。
+- 完善 `InterviewResultEditView.vue`：展示学生信息卡片（预约编号、状态、姓名、学号、院系、电话、预约时间、地点、风险等级、优先标记）；展示首访登记摘要（主要困扰、期望帮助、问题描述、风险评分、情绪/睡眠/压力评分、自伤倾向、紧急求助）；表单包含危机等级、问题类型、初访时间、初访结论、初访摘要、后续建议；转介送诊时后续建议必填；提交前二次确认；紧急风险时显示特殊提示；已提交结果以只读模式展示。
+- 补充 3 条演示数据（interviewerId=2002，状态为 APPROVED），支持分页功能测试和结果录入演示。
+
+### 影响文件
+- `src/views/interviewer/InterviewTaskView.vue`
+- `src/views/interviewer/InterviewResultEditView.vue`
+- `src/api/interviewer.ts`
+- `src/api/mock-first-visit.ts`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+- 初访员账号登录后访问 `/interviewer/tasks`
+- 测试任务列表筛选、分页功能
+- 测试结果录入、转介必填校验、二次确认功能
+- 测试已提交结果的只读展示
+
+### 遗留问题
+- 当前阶段仍为前端 mock 数据，尚未接入真实后端接口。
+
+---
+
 ## 后续更新规则
 
 ## 2026-06-06 前端最小骨架
