@@ -11,7 +11,7 @@
 开发环境建议：
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=http://127.0.0.1:24681/api
 ```
 
 若使用 Vite 代理，也可设置：

@@ -73,18 +73,18 @@
 
 ### 阶段五：心理助理端
 
-- [ ] 咨询队列页面。
-- [ ] 咨询安排页面。
-- [ ] 咨询时段预览表。
-- [ ] 冲突结果展示。
+- [x] 咨询队列页面。
+- [x] 咨询安排页面。
+- [x] 咨询时段预览表。
+- [x] 冲突结果展示。
 
 ### 阶段六：咨询师端
 
-- [ ] 我的咨询日程页面。
-- [ ] 咨询记录录入页面。
-- [ ] 追加咨询申请页面。
-- [ ] 结案报告填写页面。
-- [ ] Word 下载触发功能。
+- [x] 我的咨询日程页面。
+- [x] 咨询记录录入页面。
+- [x] 追加咨询申请页面。
+- [x] 结案报告填写页面。
+- [x] Word 下载触发功能。
 
 ### 阶段七：统计与收尾
 
@@ -218,6 +218,87 @@
 
 ---
 
+## 2026-06-07 心理助理页面（assignment-zyt 阶段1）
+
+### 完成内容
+- 新增心理助理 mock API，基于初访结果生成咨询队列，并保存正式咨询安排状态。
+- 完成 `ConsultationQueueView`，支持关键词、危机等级、问题类型、队列状态筛选，支持安排咨询和暂缓。
+- 新增 `ConsultationArrangeView`，展示学生信息和初访摘要，支持选择咨询师、咨询日期、时间段、咨询室并生成安排预览。
+- 提交安排时进行咨询师/咨询室同日期同时间段冲突校验，冲突原因直接展示在页面提示中。
+- 补齐助理菜单、正式咨询安排路由和队列状态标签。
+
+### 影响文件
+- `src/api/assistant.ts`
+- `src/api/mock-first-visit.ts`
+- `src/components/common/StatusTag.vue`
+- `src/constants/menus.ts`
+- `src/router/routes.ts`
+- `src/views/assistant/ConsultationQueueView.vue`
+- `src/views/assistant/ConsultationArrangeView.vue`
+- `../assignment-zyt.md`
+
+### 验证方式
+- 编辑器诊断检查新增/修改文件无 linter 错误。
+- 本地终端复跑 `npm run typecheck`、`npm run build`。
+- 浏览器手动登录心理助理账号后完成阶段1冒烟：队列展示、关键词筛选、安排页详情展示、安排预览、提交成功、冲突原因展示、暂缓确认与状态变更。
+
+### 遗留问题
+- 当前阶段仍为前端 mock 数据，尚未接入真实后端咨询队列和正式咨询安排接口。
+- 后续等待 PR review 后合入 `dev`。
+
+---
+
+## 2026-06-07 咨询师页面（assignment-zyt 阶段2）
+
+### 完成内容
+- 新增咨询师 mock API，支撑我的日程、咨询记录、追加申请、结案报告和 Word 下载触发。
+- 完成 `MyScheduleView`，支持日期范围、状态、学生关键词筛选，并展示学生、日期、时间段、地点、第几次和状态。
+- 新增 `ConsultationRecordEditView`，展示日程信息和学生信息，支持保存咨询状态、咨询时间、咨询摘要和后续计划。
+- 新增 `ExtensionRequestView`，支持新增追加咨询申请，并校验申请原因必填且不少于 10 字。
+- 新增 `CaseReportEditView`，支持保存草稿、二次确认后提交报告，以及触发 Word 下载提示。
+- 补齐咨询师菜单、路由和正式咨询相关状态标签。
+
+### 影响文件
+- `src/api/counselor.ts`
+- `src/components/common/StatusTag.vue`
+- `src/constants/menus.ts`
+- `src/router/routes.ts`
+- `src/views/counselor/*.vue`
+- `../assignment-zyt.md`
+
+### 验证方式
+- 编辑器诊断检查新增/修改文件无 linter 错误。
+- 待提交前复跑 `npm run typecheck`、`npm run build`。
+
+### 遗留问题
+- 当前阶段仍为前端 mock 数据，尚未接入真实后端咨询师接口。
+- 提交、推送和 PR 需在确认后按 `git-work.md` 执行。
+
+---
+
+## 2026-06-08 review 修正 zyt 阶段1/2
+
+### 完成内容
+- 在 `dev-qxz` 上同步 zyt 的心理助理与咨询师阶段页面到最新 `dev` 基线，准备统一 review 与验收。
+- 修复 `ConsultationArrangeView`：支持从菜单直达后手动选择队列记录，不再只能从队列表跳转进入。
+- 修复咨询安排页在同页切换不同队列记录时表单、详情和安排预览残留上一条记录数据的问题。 
+- 修复结案报告列表中“直接提交草稿”会绕过必填与最小字数校验的问题。
+
+### 影响文件
+- `src/api/assistant.ts`
+- `src/views/assistant/ConsultationArrangeView.vue`
+- `src/views/counselor/CaseReportEditView.vue`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+- 当前阶段仍以前端 mock 数据演示为主，未接入真实助理/咨询师后端接口。
+- 待用户验收通过后，再按协作规范提交、推送并创建 PR。
+
+---
+
 ## 后续更新规则
 
 ## 2026-06-06 前端最小骨架
@@ -228,7 +309,7 @@
 - 创建 `AuthLayout`、`MainLayout`、`BlankLayout`。
 - 创建 `AppSidebar`、`AppHeader`、`PageHeader`、`StatusTag`、`RiskTag`。
 - 创建登录页、工作台、403/404 页面和五类角色关键空路由。
-- 配置 Vite 代理到 `http://localhost:8080`。
+- 配置 Vite 代理到 `http://127.0.0.1:24681`。
 
 ### 影响文件
 - `package.json`
@@ -239,7 +320,7 @@
 - `npm install`
 - `npm run build`
 - `npm run typecheck`
-- 前端 dev server 通过 `http://127.0.0.1:5174/api/health` 成功代理后端接口
+- 前端 dev server 通过 `http://127.0.0.1:24680/api/health` 成功代理后端接口
 
 ### 遗留问题
 - 仅完成骨架和关键空页面，学生端、管理员端、初访员端、助理端、咨询师端的业务页面仍待继续实现。
