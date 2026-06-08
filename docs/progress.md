@@ -63,8 +63,8 @@
 - [x] 预约详情抽屉。
 - [x] 风险等级高亮展示。
 - [ ] 结案报告管理页面。
-- [ ] 通知日志页面。
-- [ ] 操作日志页面。
+- [x] 通知日志页面。
+- [x] 操作日志页面。
 
 ### 阶段四：初访员端
 
@@ -88,7 +88,7 @@
 
 ### 阶段七：统计与收尾
 
-- [ ] 统计看板页面。
+- [x] 统计看板页面。
 - [ ] 月度趋势折线图。
 - [ ] 问题类型饼图。
 - [ ] 危机等级柱状图。
@@ -296,6 +296,34 @@
 ### 遗留问题
 - 当前阶段仍以前端 mock 数据演示为主，未接入真实助理/咨询师后端接口。
 - 待用户验收通过后，再按协作规范提交、推送并创建 PR。
+
+---
+
+## 2026-06-08 阶段三：统计看板与日志页面
+
+### 完成内容
+- 新增 `StatisticsView.vue`：日期范围、咨询师、问题类型筛选；6 个顶部指标卡；月度趋势折线图、问题类型饼图、危机等级柱状图、咨询师工作量柱状图；无数据空状态；页面卸载时释放 ECharts 实例。
+- 新增 `NotificationLogView.vue`：关键词、通知类型、发送状态、时间范围筛选与分页表格。
+- 新增 `OperationLogView.vue`：操作人、模块、操作类型、结果状态、时间范围筛选与分页表格。
+- 新增 mock API：`src/api/statistics.ts`、`src/api/logs.ts`。
+- 管理员菜单与路由接入统计看板、通知日志、操作日志。
+
+### 影响文件
+- `src/api/statistics.ts`
+- `src/api/logs.ts`
+- `src/views/admin/StatisticsView.vue`
+- `src/views/admin/NotificationLogView.vue`
+- `src/views/admin/OperationLogView.vue`
+- `src/router/routes.ts`
+- `src/constants/menus.ts`
+- `docs/progress.md`
+
+### 验证方式
+- `npm run typecheck`
+- 管理员账号登录后访问 `/admin/statistics`、`/admin/logs/notifications`、`/admin/logs/operations`
+
+### 遗留问题
+- 统计数据与日志接口仍为前端 mock，待阶段 6/7 与后端联调。
 
 ---
 
