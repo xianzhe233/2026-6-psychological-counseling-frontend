@@ -1,116 +1,122 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
-import { NCard, NDataTable, NTag, NSpace, NEmpty } from 'naive-ui'
+import { h, onMounted, reactive, ref } from 'vue'
+import { NCard, NDataTable, NSelect, NTag, useMessage } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getMyNotifications } from '@/api/student'
 import type { Notification } from '@/types/student'
 
-const notifications = ref<Notification[]>([])
+const message = useMessage()
 const loading = ref(false)
-const total = ref(0)
-const pageNum = ref(1)
-const pageSize = ref(10)
+const data = ref<Notification[]>([])
 
-// 表格列定义
-const columns = [
-  {
-    title: '标题',
-    key: 'title',
-    width: 200
-  },
-  {
-    title: '内容',
-    key: 'content',
-    width: 300,
-    ellipsis: {
-      tooltip: true
-    }
-  },
-  {
-    title: '通知类型',
-    key: 'notifyType',
-    width: 120,
-    render(row: Notification) {
-      const typeMap: Record<string, { label: string; type: string }> = {
-        APPOINTMENT_APPROVED: { label: '预约通过', type: 'success' },
-        APPOINTMENT_REJECTED: { label: '预约驳回', type: 'error' },
-        APPOINTMENT_RESCHEDULED: { label: '改约通知', type: 'warning' },
-        APPOINTMENT_CANCELED: { label: '预约取消', type: 'default' },
-        SYSTEM: { label: '系统通知', type: 'info' }
-      }
-      const type = typeMap[row.notifyType] || { label: row.notifyType, type: 'default' }
-      return h(NTag, { type: type.type as any, size: 'small' }, { default: () => type.label })
-    }
-  },
-  {
-    title: '发送时间',
-    key: 'sendTime',
-    width: 180
-  },
-  {
-    title: '状态',
-    key: 'readStatus',
-    width: 100,
-    render(row: Notification) {
-      return h(NTag, {
-        type: row.readStatus === 0 ? 'warning' : 'success',
-        size: 'small'
-      }, { default: () => row.readStatus === 0 ? '未读' : '已读' })
-    }
-  }
+const notifyTypeOptions = [
+  { label: '全部', value: '' },
+  { label: '预约审核通过', value: 'APPOINTMENT_APPROVED' },
+  { label: '预约驳回通知', value: 'APPOINTMENT_REJECTED' },
+  { label: '预约改约通知', value: 'APPOINTMENT_RESCHEDULED' },
+  { label: '预约撤销通知', value: 'APPOINTMENT_CANCELED' },
+  { label: '咨询安排通知', value: 'CONSULTATION_ARRANGED' },
+  { label: '咨询取消通知', value: 'CONSULTATION_CANCELED' },
+  { label: '系统通知', value: 'SYSTEM' },
 ]
 
-// 获取通知列表
-async function fetchNotifications() {
+const notifyTypeFilter = ref('')
+
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0,
+  pageSizes: [5, 10, 20],
+  showSizePicker: true,
+  onChange: (page: number) => {
+    pagination.page = page
+    fetchData()
+  },
+  onUpdatePageSize: (pageSize: number) => {
+    pagination.pageSize = pageSize
+    pagination.page = 1
+    fetchData()
+  },
+})
+
+const columns: DataTableColumns<Notification> = [
+  {
+    title: '类型',
+    key: 'notifyType',
+    width: 150,
+    render(row) {
+      const typeMap: Record<string, { label: string; type: 'success' | 'warning' | 'error' | 'info' | 'default' }> = {
+        APPOINTMENT_APPROVED: { label: '预约审核通过', type: 'success' },
+        APPOINTMENT_REJECTED: { label: '预约驳回通知', type: 'error' },
+        APPOINTMENT_RESCHEDULED: { label: '预约改约通知', type: 'warning' },
+        APPOINTMENT_CANCELED: { label: '预约撤销通知', type: 'default' },
+        CONSULTATION_ARRANGED: { label: '咨询安排通知', type: 'info' },
+        CONSULTATION_CANCELED: { label: '咨询取消通知', type: 'error' },
+        SYSTEM: { label: '系统通知', type: 'default' },
+      }
+      const notifyType = typeMap[row.notifyType] || { label: row.notifyType, type: 'default' }
+      return h(NTag, { type: notifyType.type, size: 'small' }, { default: () => notifyType.label })
+    },
+  },
+  { title: '标题', key: 'title', width: 200, ellipsis: { tooltip: true } },
+  { title: '内容', key: 'content', width: 320, ellipsis: { tooltip: true } },
+  { title: '发送时间', key: 'sendTime', width: 170 },
+]
+
+async function fetchData() {
   loading.value = true
   try {
-    const { data } = await getMyNotifications({
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
+    const response = await getMyNotifications({
+      pageNum: pagination.page,
+      pageSize: pagination.pageSize,
+      notifyType: notifyTypeFilter.value || undefined,
     })
-    notifications.value = data.data?.records || []
-    total.value = data.data?.total || 0
-  } catch (error) {
-    console.error('获取通知列表失败:', error)
+    const result = response.data.data
+    data.value = result?.records || []
+    pagination.itemCount = result?.total || 0
+  } catch (error: any) {
+    message.error(error.response?.data?.message || '获取通知列表失败')
   } finally {
     loading.value = false
   }
 }
 
-// 页码变化
-function handlePageChange(page: number) {
-  pageNum.value = page
-  fetchNotifications()
-}
-
-// 每页数量变化
-function handlePageSizeChange(size: number) {
-  pageSize.value = size
-  pageNum.value = 1
-  fetchNotifications()
+function handleTypeChange() {
+  pagination.page = 1
+  fetchData()
 }
 
 onMounted(() => {
-  fetchNotifications()
+  fetchData()
 })
 </script>
 
 <template>
   <div class="my-notifications-view">
     <PageHeader title="我的通知" description="查看系统通知和消息" />
+
     <n-card class="notifications-card">
+      <template #header-extra>
+        <n-select
+          v-model:value="notifyTypeFilter"
+          :options="notifyTypeOptions"
+          placeholder="筛选类型"
+          clearable
+          style="width: 180px"
+          @update:value="handleTypeChange"
+        />
+      </template>
+
       <n-data-table
         :columns="columns"
-        :data="notifications"
+        :data="data"
         :loading="loading"
-        :pagination="{
-          page: pageNum,
-          pageSize: pageSize,
-          itemCount: total,
-          onChange: handlePageChange,
-          onUpdatePageSize: handlePageSizeChange
-        }"
-        :row-key="(row: Notification) => row.id"
+        :pagination="pagination"
+        :bordered="false"
+        :single-line="false"
+        scroll-x="900"
+        remote
       />
     </n-card>
   </div>
