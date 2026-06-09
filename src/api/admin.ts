@@ -1241,3 +1241,114 @@ export function rescheduleAppointmentReal(id: number, data: RealApproveRequest) 
 export function markPriorityReal(id: number) {
   return http.post<ApiResult<void>>(`/admin/first-visit/appointments/${id}/priority`)
 }
+
+// ========== 真实后端API调用（阶段五：值班管理） ==========
+
+export interface RealDutyScheduleVO {
+  id: number
+  staffId: number
+  staffName: string
+  staffType: string
+  dutyDate: string
+  slotId: number
+  slotName: string
+  startTime: string
+  endTime: string
+  roomId?: number
+  roomName?: string
+  capacity: number
+  reservedCount: number
+  remaining: number
+  status: number
+}
+
+export interface RealBatchScheduleResponse {
+  createdCount: number
+  skippedCount: number
+  conflicts?: Array<{
+    date: string
+    slotId: number
+    reason: string
+  }>
+}
+
+export function pageDutySchedulesReal(params: {
+  pageNum: number
+  pageSize: number
+  staffType?: string
+  staffId?: number
+  startDate?: string
+  endDate?: string
+  status?: number
+}) {
+  return http.get<ApiResult<RealPageResult<RealDutyScheduleVO>>>('/admin/duty-schedules', { params })
+}
+
+export function createDutyScheduleReal(data: {
+  staffId: number
+  staffType: string
+  dutyDate: string
+  slotId: number
+  roomId?: number
+  capacity: number
+  status: number
+}) {
+  return http.post<ApiResult<number>>('/admin/duty-schedules', data)
+}
+
+export function updateDutyScheduleReal(id: number, data: {
+  staffId: number
+  staffType: string
+  dutyDate: string
+  slotId: number
+  roomId?: number
+  capacity: number
+  status: number
+}) {
+  return http.put<ApiResult<void>>(`/admin/duty-schedules/${id}`, data)
+}
+
+export function batchCreateDutySchedulesReal(data: {
+  staffId: number
+  staffType: string
+  startDate: string
+  endDate: string
+  weekdays: number[]
+  slotIds: number[]
+  roomId?: number
+  capacity: number
+}) {
+  return http.post<ApiResult<RealBatchScheduleResponse>>('/admin/duty-schedules/batch', data)
+}
+
+export function getStaffOptionsReal(staffType?: string) {
+  return http.get<ApiResult<Array<{ label: string; value: number; staffType?: string }>>>('/admin/staff/options', {
+    params: staffType ? { staffType } : {},
+  })
+}
+
+export function getRoomOptionsReal() {
+  return http.get<ApiResult<Array<{ label: string; value: number }>>>('/admin/rooms/options')
+}
+
+export function getTimeSlotOptionsReal() {
+  return http.get<ApiResult<Array<{ label: string; value: number }>>>('/admin/time-slots/options')
+}
+
+export function getInterviewDutyOptionsReal(params?: {
+  staffType?: string
+  staffId?: number
+  startDate?: string
+  endDate?: string
+  status?: number
+}) {
+  return http.get<ApiResult<RealPageResult<RealDutyScheduleVO>>>('/admin/duty-schedules', {
+    params: {
+      staffType: 'INTERVIEWER',
+      status: 1,
+      pageNum: 1,
+      pageSize: 100,
+      ...params,
+    },
+  })
+}
