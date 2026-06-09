@@ -89,7 +89,7 @@ const weekdayOptions = [
   { label: '周四', value: 4 },
   { label: '周五', value: 5 },
   { label: '周六', value: 6 },
-  { label: '周日', value: 0 },
+  { label: '周日', value: 7 },
 ]
 
 const searchStaffOptions = ref<OptionItem[]>([])
@@ -401,7 +401,16 @@ async function handleBatchSubmit() {
   batchSubmitting.value = true
   try {
     const { data: result } = await batchCreateDutySchedulesReal(payload)
-    message.success(`已批量创建 ${result.data.createdCount} 条值班安排`)
+    const { createdCount, skippedCount, conflicts } = result.data
+    if (skippedCount > 0) {
+      const firstConflict = conflicts?.[0]
+      const conflictSummary = firstConflict
+        ? `；例如 ${firstConflict.date} 第 ${firstConflict.slotId} 个时间段：${firstConflict.reason}`
+        : ''
+      message.warning(`已创建 ${createdCount} 条，跳过 ${skippedCount} 条冲突记录${conflictSummary}`)
+    } else {
+      message.success(`已批量创建 ${createdCount} 条值班安排`)
+    }
     showBatchModal.value = false
     await fetchData()
   } catch (error) {
