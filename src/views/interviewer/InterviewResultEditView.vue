@@ -23,8 +23,8 @@ import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { getInterviewTaskDetail, getProblemTypeOptionList, submitInterviewResult } from '@/api/interviewer'
-import type { InterviewResultRequest, InterviewTaskDetailVO } from '@/api/interviewer'
+import { getInterviewTaskDetailReal, getProblemTypeOptionsReal, submitInterviewResultReal } from '@/api/interviewer'
+import type { InterviewResultRequest, RealInterviewTaskDetailVO } from '@/api/interviewer'
 import type { OptionItem } from '@/api/admin'
 
 const route = useRoute()
@@ -35,7 +35,7 @@ const dialog = useDialog()
 const taskId = computed(() => Number(route.params.id))
 const loading = ref(false)
 const submitting = ref(false)
-const taskDetail = ref<InterviewTaskDetailVO | null>(null)
+const taskDetail = ref<RealInterviewTaskDetailVO | null>(null)
 const problemTypeOptions = ref<OptionItem[]>([])
 
 const form = reactive<InterviewResultRequest>({
@@ -63,6 +63,7 @@ const conclusionOptions = [
 const nextActionRequired = computed(() => form.conclusion === 'TRANSFER')
 const readonlyMode = computed(() => taskDetail.value?.appointmentStatus === 'COMPLETED')
 
+// 通过真实后端接口加载任务详情和问题类型选项
 async function fetchTaskDetail() {
   if (!taskId.value) {
     message.error('任务参数无效')
@@ -71,22 +72,22 @@ async function fetchTaskDetail() {
 
   loading.value = true
   try {
-    const [detail, problemTypes] = await Promise.all([
-      getInterviewTaskDetail(taskId.value),
-      getProblemTypeOptionList(),
+    const [detailRes, problemTypesRes] = await Promise.all([
+      getInterviewTaskDetailReal(taskId.value),
+      getProblemTypeOptionsReal(),
     ])
-    taskDetail.value = detail
-    problemTypeOptions.value = problemTypes
+    taskDetail.value = detailRes.data.data
+    problemTypeOptions.value = problemTypesRes.data.data
 
-    if (detail.latestResult) {
-      form.crisisLevel = detail.latestResult.crisisLevel
-      form.problemTypeId = detail.latestResult.problemTypeId
-      form.interviewTime = detail.latestResult.interviewTime
-      form.conclusion = detail.latestResult.conclusion
-      form.summary = detail.latestResult.summary || ''
-      form.nextAction = detail.latestResult.nextAction || ''
-    } else {
-      form.interviewTime = `${detail.appointmentDate} ${detail.startTime}`
+    if (taskDetail.value?.latestResult) {
+      form.crisisLevel = taskDetail.value.latestResult.crisisLevel as InterviewResultRequest['crisisLevel']
+      form.problemTypeId = taskDetail.value.latestResult.problemTypeId
+      form.interviewTime = taskDetail.value.latestResult.interviewTime
+      form.conclusion = taskDetail.value.latestResult.conclusion as InterviewResultRequest['conclusion']
+      form.summary = taskDetail.value.latestResult.summary || ''
+      form.nextAction = taskDetail.value.latestResult.nextAction || ''
+    } else if (taskDetail.value) {
+      form.interviewTime = `${taskDetail.value.appointmentDate} ${taskDetail.value.startTime}`
     }
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载任务详情失败')
@@ -139,7 +140,7 @@ function handleSubmit() {
     onPositiveClick: async () => {
       submitting.value = true
       try {
-        await submitInterviewResult(taskId.value, {
+        await submitInterviewResultReal(taskId.value, {
           crisisLevel: form.crisisLevel,
           problemTypeId: form.problemTypeId,
           interviewTime: form.interviewTime,
