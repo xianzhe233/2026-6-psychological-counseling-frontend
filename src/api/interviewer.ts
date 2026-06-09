@@ -1,6 +1,8 @@
 import dayjs from 'dayjs'
 
+import { http } from './http'
 import { useAuthStore } from '@/stores/auth'
+import type { ApiResult } from '@/types/auth'
 import { findMockStaffByIdentity, type OptionItem, type PageResult } from './admin'
 import {
   getMockAppointments,
@@ -228,4 +230,92 @@ export async function submitInterviewResult(id: number, data: InterviewResultReq
 
 export async function getProblemTypeOptionList() {
   return respondMock<OptionItem[]>(getProblemTypeOptions())
+}
+
+// ========== 真实后端API调用（阶段七联调） ==========
+
+/** 真实后端-初访任务列表VO */
+export interface RealInterviewTaskVO {
+  appointmentId: number
+  appointmentNo: string
+  studentName: string
+  studentNo: string
+  appointmentDate: string
+  slotName: string
+  startTime: string
+  endTime: string
+  roomName?: string
+  riskLevel: string
+  appointmentStatus: string
+}
+
+/** 真实后端-初访任务详情VO */
+export interface RealInterviewTaskDetailVO {
+  appointmentId: number
+  appointmentNo: string
+  studentId: number
+  studentName: string
+  studentNo: string
+  college?: string
+  phone?: string
+  formId?: number
+  mainProblem?: string
+  problemDescription?: string
+  expectedHelp?: string
+  moodScore?: number
+  sleepScore?: number
+  stressScore?: number
+  selfHarmFlag?: number
+  emergencyFlag?: number
+  riskLevel?: string
+  riskScore?: number
+  appointmentDate: string
+  slotId?: number
+  slotName: string
+  startTime: string
+  endTime: string
+  roomId?: number
+  roomName?: string
+  interviewerId?: number
+  interviewerName?: string
+  priorityFlag?: number
+  appointmentStatus: string
+  createTime: string
+  latestResult?: {
+    crisisLevel: string
+    problemTypeId: number
+    problemTypeLabel: string
+    interviewTime: string
+    conclusion: string
+    summary?: string
+    nextAction?: string
+    submitTime: string
+  }
+}
+
+/** 真实后端-分页查询初访任务 */
+export function pageInterviewTasksReal(params: {
+  pageNum: number
+  pageSize: number
+  startDate?: string
+  endDate?: string
+  status?: string
+  riskLevel?: string
+}) {
+  return http.get<ApiResult<PageResult<RealInterviewTaskVO>>>('/interviewer/tasks', { params })
+}
+
+/** 真实后端-获取初访任务详情 */
+export function getInterviewTaskDetailReal(appointmentId: number) {
+  return http.get<ApiResult<RealInterviewTaskDetailVO>>(`/interviewer/tasks/${appointmentId}`)
+}
+
+/** 真实后端-提交初访结果 */
+export function submitInterviewResultReal(appointmentId: number, data: InterviewResultRequest) {
+  return http.post<ApiResult<void>>(`/interviewer/tasks/${appointmentId}/result`, data)
+}
+
+/** 真实后端-获取问题类型选项 */
+export function getProblemTypeOptionsReal() {
+  return http.get<ApiResult<OptionItem[]>>('/common/problem-types/options')
 }

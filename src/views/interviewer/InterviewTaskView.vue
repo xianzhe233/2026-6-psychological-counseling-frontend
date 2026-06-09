@@ -7,14 +7,14 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { pageInterviewTasks } from '@/api/interviewer'
-import type { InterviewTaskVO } from '@/api/interviewer'
+import { pageInterviewTasksReal } from '@/api/interviewer'
+import type { RealInterviewTaskVO } from '@/api/interviewer'
 
 const router = useRouter()
 const message = useMessage()
 
 const loading = ref(false)
-const tasks = ref<InterviewTaskVO[]>([])
+const tasks = ref<RealInterviewTaskVO[]>([])
 
 const searchForm = reactive({
   dateRange: null as [string, string] | null,
@@ -42,7 +42,7 @@ const riskLevelOptions = [
   { label: '紧急风险', value: 'URGENT' },
 ]
 
-const columns: DataTableColumns<InterviewTaskVO> = [
+const columns: DataTableColumns<RealInterviewTaskVO> = [
   { title: '预约编号', key: 'appointmentNo', width: 150 },
   { title: '学生姓名', key: 'studentName', width: 110 },
   { title: '学号', key: 'studentNo', width: 130 },
@@ -104,10 +104,11 @@ const columns: DataTableColumns<InterviewTaskVO> = [
   },
 ]
 
+// 通过真实后端接口加载初访任务列表
 async function fetchTasks() {
   loading.value = true
   try {
-    const result = await pageInterviewTasks({
+    const { data: result } = await pageInterviewTasksReal({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
       startDate: searchForm.dateRange?.[0],
@@ -115,8 +116,8 @@ async function fetchTasks() {
       status: searchForm.status || undefined,
       riskLevel: searchForm.riskLevel || undefined,
     })
-    tasks.value = result.records
-    pagination.itemCount = result.total
+    tasks.value = result.data.records
+    pagination.itemCount = result.data.total
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载初访任务失败')
   } finally {
