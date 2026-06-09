@@ -549,3 +549,36 @@
 ### 遗留问题
 
 - 可预约时间段选择组件已集成在 `AppointmentCreateView.vue` 中，暂无需单独抽取。
+
+---
+
+## 2026-06-08 阶段五：值班管理与预约审核接入真实后端接口
+
+### 完成内容
+- 将 `DutyScheduleView.vue` 的值班列表查询、新增、编辑、批量排班从 mock 数据切换到真实后端接口
+- 将工作人员选项、咨询室选项、时间段选项从 mock 切换到真实接口
+- 将 `AppointmentAuditView.vue` 的值班选项下拉框从 mock 数据切换到真实后端接口
+- 保持预约审核的通过/驳回/改约/优先操作使用真实 API
+- 新增真实 API 函数：`pageDutySchedulesReal`、`createDutyScheduleReal`、`updateDutyScheduleReal`、`batchCreateDutySchedulesReal`、`getStaffOptionsReal`、`getRoomOptionsReal`、`getTimeSlotOptionsReal`、`getInterviewDutyOptionsReal`
+
+### 影响文件
+- `src/api/admin.ts`
+- `src/views/admin/DutyScheduleView.vue`
+- `src/views/admin/AppointmentAuditView.vue`
+
+### 验证方式
+- `npm run typecheck`
+- `npm run build`
+- 管理员登录后测试值班管理页面：分页、筛选、新增、编辑、停用/启用、批量排班、冲突检测
+- 管理员登录后测试预约审核页面：列表显示、筛选、详情查看、通过、驳回、改约、优先标记
+- 验证值班选项下拉框显示真实数据
+
+### 已知问题
+- 高风险行红色高亮背景与操作按钮区域有轻微视觉重叠（鼠标悬停时消失），暂不影响功能使用
+
+### review 修正
+- 将批量排班的“周日”选项从 mock 时代的 `0` 改为与后端 `DayOfWeek` 一致的 `7`，修复接入真实接口后选择周日却不会生成值班的问题。
+- 补齐批量排班成功提示中的 `skippedCount/conflicts` 反馈，避免真实接口跳过冲突记录时前端仍误报“全部创建成功”。
+
+### 遗留问题
+- 阶段六（后端初访员接口）和阶段七（前后端联调）仍待完成
