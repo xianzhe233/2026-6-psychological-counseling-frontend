@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import dayjs from 'dayjs'
 import { computed, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -62,6 +63,21 @@ const conclusionOptions = [
 
 const nextActionRequired = computed(() => form.conclusion === 'TRANSFER')
 const readonlyMode = computed(() => taskDetail.value?.appointmentStatus === 'COMPLETED')
+const displayDateTimeFormat = 'YYYY-MM-DD HH:mm'
+const submitDateTimeFormat = 'YYYY-MM-DD HH:mm:ss'
+
+function formatDisplayDateTime(value?: string) {
+  if (!value) {
+    return ''
+  }
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed.format(displayDateTimeFormat) : value
+}
+
+function formatSubmitDateTime(value: string) {
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed.format(submitDateTimeFormat) : value
+}
 
 // 通过真实后端接口加载任务详情和问题类型选项
 async function fetchTaskDetail() {
@@ -82,12 +98,12 @@ async function fetchTaskDetail() {
     if (taskDetail.value?.latestResult) {
       form.crisisLevel = taskDetail.value.latestResult.crisisLevel as InterviewResultRequest['crisisLevel']
       form.problemTypeId = taskDetail.value.latestResult.problemTypeId
-      form.interviewTime = taskDetail.value.latestResult.interviewTime
+      form.interviewTime = formatDisplayDateTime(taskDetail.value.latestResult.interviewTime)
       form.conclusion = taskDetail.value.latestResult.conclusion as InterviewResultRequest['conclusion']
       form.summary = taskDetail.value.latestResult.summary || ''
       form.nextAction = taskDetail.value.latestResult.nextAction || ''
     } else if (taskDetail.value) {
-      form.interviewTime = `${taskDetail.value.appointmentDate} ${taskDetail.value.startTime}`
+      form.interviewTime = formatDisplayDateTime(`${taskDetail.value.appointmentDate} ${taskDetail.value.startTime}`)
     }
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载任务详情失败')
@@ -143,7 +159,7 @@ function handleSubmit() {
         await submitInterviewResultReal(taskId.value, {
           crisisLevel: form.crisisLevel,
           problemTypeId: form.problemTypeId,
-          interviewTime: form.interviewTime,
+          interviewTime: formatSubmitDateTime(form.interviewTime),
           conclusion: form.conclusion,
           summary: form.summary,
           nextAction: form.nextAction,
