@@ -168,6 +168,7 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
     title: '状态',
     key: 'appointmentStatus',
     width: 100,
+    fixed: 'right',
     render(row) {
       return h(StatusTag, { value: row.appointmentStatus })
     },
@@ -176,7 +177,6 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
     title: '优先',
     key: 'priorityFlag',
     width: 90,
-    fixed: 'right',
     render(row) {
       return row.priorityFlag === 1
         ? h(NTag, { round: true, type: 'warning', size: 'small' }, { default: () => '优先' })
@@ -578,7 +578,7 @@ onMounted(async () => {
         :loading="loading"
         :pagination="pagination"
         :row-class-name="rowClassName"
-        :scroll-x="1650"
+        :scroll-x="1900"
         remote
         striped
         @update:page="handlePageChange"
@@ -717,19 +717,15 @@ onMounted(async () => {
   padding: 16px;
 }
 
-:deep(.n-data-table .n-data-table-tr.high-risk-row) {
+:deep(.n-data-table .n-data-table-tr.high-risk-row td:not(.n-data-table-td--fixed-right)) {
   background-color: rgba(208, 48, 80, 0.06) !important;
 }
 
-:deep(.n-data-table .n-data-table-tr.high-risk-row td) {
-  background-color: rgba(208, 48, 80, 0.06) !important;
-}
-
-:deep(.n-data-table .n-data-table-tr.high-risk-row:hover td) {
+:deep(.n-data-table .n-data-table-tr.high-risk-row:hover td:not(.n-data-table-td--fixed-right)) {
   background-color: rgba(208, 48, 80, 0.12) !important;
 }
 
-:deep(.n-data-table .n-data-table-tr.high-risk-row.n-data-table-tr--hover td) {
+:deep(.n-data-table .n-data-table-tr.high-risk-row.n-data-table-tr--hover td:not(.n-data-table-td--fixed-right)) {
   background-color: rgba(208, 48, 80, 0.12) !important;
 }
 </style>
