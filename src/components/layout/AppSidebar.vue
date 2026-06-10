@@ -29,7 +29,7 @@ const menuOptions = computed(() => {
       <div class="app-sidebar__badge">TYUT</div>
       <div>
         <div class="app-sidebar__title">心理咨询系统</div>
-        <div class="app-sidebar__subtitle">前端基础骨架</div>
+        <div class="app-sidebar__subtitle">高校心理咨询预约与个案管理</div>
       </div>
     </div>
     <n-menu :options="menuOptions" :value="$route.path" @update:value="router.push(String($event))" />

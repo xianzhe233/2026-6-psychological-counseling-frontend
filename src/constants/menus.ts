@@ -25,6 +25,7 @@ export const roleMenus: Record<RoleCode, MenuItem[]> = {
     { key: 'admin-duty-schedules', label: '值班管理', path: '/admin/duty-schedules', icon: GridOutline },
     { key: 'admin-audit', label: '预约审核', path: '/admin/appointments/audit', icon: ClipboardOutline },
     { key: 'admin-statistics', label: '统计看板', path: '/admin/statistics', icon: BarChartOutline },
+    { key: 'admin-case-reports', label: '结案报告管理', path: '/admin/case-reports', icon: ClipboardOutline },
     { key: 'admin-notification-logs', label: '通知日志', path: '/admin/logs/notifications', icon: NotificationsOutline },
     { key: 'admin-operation-logs', label: '操作日志', path: '/admin/logs/operations', icon: ListOutline },
   ],

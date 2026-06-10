@@ -62,7 +62,7 @@
 - [x] 初访预约审核页面。
 - [x] 预约详情抽屉。
 - [x] 风险等级高亮展示。
-- [ ] 结案报告管理页面。
+- [x] 结案报告管理页面。
 - [x] 通知日志页面。
 - [x] 操作日志页面。
 
@@ -612,6 +612,38 @@
 ### 遗留问题
 
 - `src/api/statistics.ts`、`src/api/logs.ts`、`src/api/counselor.ts`、`src/api/assistant.ts` 等后半段 API 模块仍存在 mock 实现，下一轮应按后端真实接口逐页切换并联调。
+
+---
+
+## 2026-06-10 qxz 补齐管理员结案报告管理页面
+
+### 完成内容
+
+- 新增 `CaseReportManageView.vue`，支持管理员按学生关键词、咨询师、问题类型、结案类型、提交日期范围筛选已提交结案报告。
+- 补齐管理员结案报告列表、详情抽屉和 Word 下载操作，并接入现有后端 `/admin/case-reports`、`/admin/case-reports/{id}`、`/admin/case-reports/{id}/export-word` 接口。
+- 在前端路由和管理员菜单中补上“结案报告管理”入口，消除管理员端最后一个缺失页面。
+- 为匹配页面展示，后端结案报告查询补充返回 `counselorName` / `counselorId`，并新增 XML 回归测试防止关联关系回退。
+
+### 影响文件
+
+- `src/views/admin/CaseReportManageView.vue`
+- `src/api/admin.ts`
+- `src/router/routes.ts`
+- `src/constants/menus.ts`
+- `docs/progress.md`
+- `../backend/src/main/java/com/tyut/psychological/report/vo/CaseReportVO.java`
+- `../backend/src/main/resources/mapper/report/CaseReportMapper.xml`
+- `../backend/src/test/java/com/tyut/psychological/report/mapper/CaseReportMapperXmlTest.java`
+
+### 验证方式
+
+- `npm run typecheck`
+- `npm run build`
+- `./mvnw test`
+
+### 遗留问题
+
+- 管理员端当前已支持单个 Word 下载，文档中提到的批量下载仍可作为可选增强项后续再补。
 
 ---
 

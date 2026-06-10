@@ -203,122 +203,6 @@ const staffTypeLabelMap: Record<string, string> = {
   COUNSELOR: '咨询师',
 }
 
-const mockStaff: StaffVO[] = [
-  {
-    id: 2001,
-    userId: 1001,
-    username: 'admin01',
-    staffNo: 'A001',
-    realName: '中心管理员',
-    phone: '13800000001',
-    staffType: 'ADMIN',
-    title: '主管老师',
-    specialty: '系统管理',
-    introduction: '负责中心日常配置与运营。',
-    maxDailyAppointments: 6,
-    status: 1,
-  },
-  {
-    id: 2002,
-    userId: 1002,
-    username: 'interviewer01',
-    staffNo: 'I001',
-    realName: '初访员张老师',
-    phone: '13800000002',
-    staffType: 'INTERVIEWER',
-    title: '讲师',
-    specialty: '压力管理',
-    introduction: '擅长学生压力与情绪问题初筛。',
-    maxDailyAppointments: 8,
-    status: 1,
-  },
-  {
-    id: 2003,
-    userId: 1003,
-    username: 'assistant01',
-    staffNo: 'S001',
-    realName: '心理助理王老师',
-    phone: '13800000003',
-    staffType: 'ASSISTANT',
-    title: '助理研究员',
-    specialty: '流程协调',
-    introduction: '负责正式咨询安排与跟进。',
-    maxDailyAppointments: 10,
-    status: 0,
-  },
-  {
-    id: 2004,
-    userId: 1004,
-    username: 'counselor01',
-    staffNo: 'C001',
-    realName: '咨询师李老师',
-    phone: '13800000004',
-    staffType: 'COUNSELOR',
-    title: '副教授',
-    specialty: '人际关系',
-    introduction: '负责正式咨询与结案报告。',
-    maxDailyAppointments: 5,
-    status: 1,
-  },
-  {
-    id: 2005,
-    userId: 1006,
-    username: 'multi-role01',
-    staffNo: 'I002',
-    realName: '赵老师',
-    phone: '13800000006',
-    staffType: 'INTERVIEWER',
-    title: '讲师',
-    specialty: '危机识别',
-    introduction: '参与值班与初访任务。',
-    maxDailyAppointments: 6,
-    status: 1,
-  },
-]
-
-export function findMockStaffByIdentity(params: {
-  userId?: number
-  username?: string
-  realName?: string
-  staffType?: string
-}) {
-  const { userId, username, realName, staffType } = params
-  return mockStaff.find((item) => {
-    if (staffType && item.staffType !== staffType) return false
-    if (typeof userId === 'number' && item.userId === userId) return true
-    if (username && item.username === username) return true
-    if (realName && item.realName === realName) return true
-    return false
-  })
-}
-
-const mockRooms: RoomVO[] = [
-  { id: 3001, roomName: '咨询室101', location: '心理中心一层', capacity: 2, status: 1, remark: '适合一对一面谈' },
-  { id: 3002, roomName: '咨询室102', location: '心理中心一层', capacity: 2, status: 1, remark: '靠近等候区' },
-  { id: 3003, roomName: '团体辅导室', location: '心理中心二层', capacity: 8, status: 1, remark: '可用于小组活动' },
-  { id: 3004, roomName: '备用咨询室', location: '心理中心二层', capacity: 1, status: 0, remark: '设备待维护' },
-]
-
-const mockTimeSlots: TimeSlotVO[] = [
-  { id: 4001, slotName: '上午第一时段', startTime: '08:30', endTime: '10:00', intervalMinutes: 10, status: 1 },
-  { id: 4002, slotName: '上午第二时段', startTime: '10:10', endTime: '11:40', intervalMinutes: 10, status: 1 },
-  { id: 4003, slotName: '下午第一时段', startTime: '14:30', endTime: '16:00', intervalMinutes: 10, status: 1 },
-  { id: 4004, slotName: '晚间时段', startTime: '19:00', endTime: '20:30', intervalMinutes: 10, status: 0 },
-]
-
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T
-}
-
-function sleep(ms = 180) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms))
-}
-
-async function respond<T>(value: T) {
-  await sleep()
-  return clone(value)
-}
-
 export function getRoleLabel(roleCode: string) {
   return roleLabelMap[roleCode] ?? roleCode
 }
@@ -379,15 +263,8 @@ export async function updateStaff(id: number, data: StaffSaveRequest) {
 }
 
 export async function getStaffOptions(staffType?: string) {
-  const options = mockStaff
-    .filter(item => item.status === 1)
-    .filter(item => !staffType || item.staffType === staffType)
-    .map<OptionItem>(item => ({
-      label: `${item.realName}（${getStaffTypeLabel(item.staffType)}）`,
-      value: item.id,
-    }))
-
-  return respond(options)
+  const { data } = await getStaffOptionsReal(staffType)
+  return data.data
 }
 
 export async function pageRooms(query: RoomQuery) {
@@ -407,14 +284,8 @@ export async function updateRoom(id: number, data: RoomSaveRequest) {
 }
 
 export async function getRoomOptions() {
-  const options = mockRooms
-    .filter(item => item.status === 1)
-    .map<OptionItem>(item => ({
-      label: item.roomName,
-      value: item.id,
-    }))
-
-  return respond(options)
+  const { data } = await getRoomOptionsReal()
+  return data.data
 }
 
 export async function pageTimeSlots(query: TimeSlotQuery) {
@@ -434,14 +305,8 @@ export async function updateTimeSlot(id: number, data: TimeSlotSaveRequest) {
 }
 
 export async function getTimeSlotOptions() {
-  const options = mockTimeSlots
-    .filter(item => item.status === 1)
-    .map<OptionItem>(item => ({
-      label: `${item.slotName}（${item.startTime}-${item.endTime}）`,
-      value: item.id,
-    }))
-
-  return respond(options)
+  const { data } = await getTimeSlotOptionsReal()
+  return data.data
 }
 
 export interface AppointmentAuditQuery {
@@ -749,4 +614,78 @@ export function getInterviewDutyOptionsReal(params?: {
       ...params,
     },
   })
+}
+
+export type CloseType = 'NORMAL' | 'DROPPED' | 'TRANSFER'
+export type ReportStatus = 'DRAFT' | 'SUBMITTED'
+
+export interface AdminCaseReportQuery {
+  pageNum: number
+  pageSize: number
+  studentKeyword?: string
+  counselorId?: number | null
+  problemTypeId?: number | null
+  closeType?: CloseType | null
+  startDate?: string
+  endDate?: string
+}
+
+export interface AdminCaseReportVO {
+  id: number
+  reportNo: string
+  studentId: number
+  studentName: string
+  studentNo: string
+  college?: string
+  phone?: string
+  counselorId?: number
+  counselorName?: string
+  problemTypeId: number
+  problemTypeLabel: string
+  totalSessions: number
+  effectSelfRating?: string
+  caseSummary?: string
+  counselingEffect?: string
+  suggestion?: string
+  closeType: CloseType
+  reportStatus: ReportStatus
+  submitTime?: string
+  updateTime: string
+}
+
+export async function getCounselorStaffOptionsReal(): Promise<OptionItem[]> {
+  const { data } = await getStaffOptionsReal('COUNSELOR')
+  return data.data
+}
+
+export async function getProblemTypeOptionsReal(): Promise<OptionItem[]> {
+  const { data } = await http.get<ApiResult<OptionItem[]>>('/common/problem-types/options')
+  return data.data
+}
+
+export async function pageCaseReports(query: AdminCaseReportQuery) {
+  const { data } = await http.get<ApiResult<PageResult<AdminCaseReportVO>>>('/admin/case-reports', {
+    params: compactParams(query),
+  })
+  return data.data
+}
+
+export async function getCaseReportDetail(id: number) {
+  const { data } = await http.get<ApiResult<AdminCaseReportVO>>(`/admin/case-reports/${id}`)
+  return data.data
+}
+
+export async function downloadCaseReportWord(id: number): Promise<void> {
+  const response = await http.get(`/admin/case-reports/${id}/export-word`, {
+    responseType: 'blob',
+  })
+  const contentDisposition = response.headers['content-disposition'] ?? ''
+  const match = contentDisposition.match(/filename\*?=(?:UTF-8''|"?)?"?([^";]+)"?/) 
+  const fileName = match?.[1] ?? '结案报告.docx'
+  const url = URL.createObjectURL(response.data as Blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = decodeURIComponent(fileName)
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
