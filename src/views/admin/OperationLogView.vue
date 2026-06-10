@@ -74,7 +74,7 @@ const operationTypeLabelMap: Record<string, string> = {
 
 const columns: DataTableColumns<OperationLogVO> = [
   { title: '操作人', key: 'operatorName', width: 110 },
-  { title: '角色', key: 'roleName', width: 100 },
+  { title: '角色', key: 'roleCode', width: 100 },
   { title: '模块', key: 'moduleName', width: 110 },
   {
     title: '操作类型',
@@ -86,7 +86,7 @@ const columns: DataTableColumns<OperationLogVO> = [
   },
   {
     title: '描述',
-    key: 'description',
+    key: 'operationDesc',
     minWidth: 260,
     ellipsis: { tooltip: true },
   },
@@ -104,22 +104,21 @@ const columns: DataTableColumns<OperationLogVO> = [
   },
   {
     title: '耗时',
-    key: 'durationMs',
+    key: 'executionTime',
     width: 90,
     render(row) {
-      return `${row.durationMs} ms`
+      return `${row.executionTime} ms`
     },
   },
   { title: 'IP', key: 'ipAddress', width: 120 },
-  { title: '时间', key: 'operateTime', width: 160 },
+  { title: '时间', key: 'createTime', width: 160 },
 ]
 
 function buildQuery(): OperationLogQuery {
   return {
     pageNum: pagination.page,
     pageSize: pagination.pageSize,
-    operatorName: searchForm.operatorName.trim() || undefined,
-    moduleName: searchForm.moduleName ?? undefined,
+    keyword: searchForm.operatorName.trim() || undefined,
     operationType: searchForm.operationType ?? undefined,
     resultStatus: searchForm.resultStatus ?? undefined,
     startTime: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD') : undefined,

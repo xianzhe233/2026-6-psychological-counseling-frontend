@@ -58,7 +58,7 @@ const sendStatusOptions = [
 
 const columns: DataTableColumns<NotificationLogVO> = [
   { title: '接收人', key: 'receiverName', width: 110 },
-  { title: '手机号', key: 'receiverPhone', width: 130 },
+  { title: '手机号', key: 'phone', width: 130 },
   {
     title: '通知类型',
     key: 'notifyType',
