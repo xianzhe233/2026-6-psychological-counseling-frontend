@@ -1,6 +1,4 @@
-import dayjs from 'dayjs'
-
-import type { DutyScheduleVO, OptionItem } from './admin'
+import type { OptionItem } from './admin'
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export type AppointmentStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELED' | 'COMPLETED'
@@ -437,39 +435,3 @@ export function updateMockAppointment(id: number, patch: Partial<MockAppointment
   return target
 }
 
-export function pickDutyScheduleOptions(schedules: DutyScheduleVO[], staffId?: number) {
-  return schedules
-    .filter(item => item.status === 1)
-    .filter(item => item.staffType === 'INTERVIEWER')
-    .filter(item => !staffId || item.staffId === staffId)
-    .sort((a, b) => `${a.dutyDate}${a.startTime}`.localeCompare(`${b.dutyDate}${b.startTime}`))
-}
-
-export function applyDutyScheduleToAppointment(
-  appointmentId: number,
-  schedule: DutyScheduleVO,
-  auditRemark?: string,
-  nextStatus: AppointmentStatus = 'APPROVED',
-) {
-  const target = getMockAppointmentById(appointmentId)
-  if (!target) {
-    throw new Error('未找到预约记录')
-  }
-
-  updateMockAppointment(appointmentId, {
-    dutyScheduleId: schedule.id,
-    interviewerId: schedule.staffId,
-    interviewerName: schedule.staffName,
-    appointmentDate: schedule.dutyDate,
-    slotId: schedule.slotId,
-    slotName: schedule.slotName,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    roomId: schedule.roomId ?? undefined,
-    roomName: schedule.roomName,
-    appointmentStatus: nextStatus,
-    auditRemark: auditRemark?.trim() || '',
-    auditTime: dayjs().format('YYYY-MM-DD HH:mm'),
-    auditorName: '中心管理员',
-  })
-}

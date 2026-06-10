@@ -56,8 +56,8 @@ onMounted(async () => {
         emergencyFlag: data.data.emergencyFlag,
       }
     }
-  } catch (error) {
-    console.error('获取首访登记表失败', error)
+  } catch {
+    existingForm.value = null
   }
 })
 

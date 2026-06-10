@@ -23,8 +23,6 @@ async function handleLogin() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : getDefaultRouteByRoles(user.roles)
     router.push(redirect)
   } catch (error: any) {
-    // 暂时把真实错误抛到页面，先定位登录失败来源。
-    console.error('login failed', error)
     message.error(error?.response?.data?.message || error?.message || '登录失败')
   } finally {
     form.loading = false

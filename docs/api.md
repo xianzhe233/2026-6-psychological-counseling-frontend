@@ -660,23 +660,25 @@ export interface CaseReportRequest {
 
 ```ts
 export interface StatisticsQuery {
-  startDate?: string
-  endDate?: string
-  counselorId?: number
-  problemTypeId?: number
+  startDate: string
+  endDate: string
 }
 ```
+
+当前后端统计接口均要求 `startDate` / `endDate`。前端现有 `src/api/statistics.ts` 仍保留 mock 适配函数名，真实联调时需映射到下表路径。
 
 ### 9.2 API 函数
 
 | 函数 | 方法与路径 | 图表 | 页面 |
 |:--|:--|:--|:--|
 | `getOverview(query)` | `GET /admin/statistics/overview` | 顶部指标卡 | StatisticsView |
-| `getMonthlyTrend(query)` | `GET /admin/statistics/monthly-trend` | 月度趋势折线图 | StatisticsView |
-| `getProblemTypeDistribution(query)` | `GET /admin/statistics/problem-types` | 问题类型饼图 | StatisticsView |
-| `getCrisisLevelDistribution(query)` | `GET /admin/statistics/crisis-levels` | 危机等级柱状图 | StatisticsView |
-| `getCounselorWorkload(query)` | `GET /admin/statistics/counselor-workload` | 咨询师工作量柱状图 | StatisticsView |
-| `exportStatisticsExcel(query)` | `GET /admin/statistics/export-excel` | Excel 导出 | StatisticsView |
+| `getConsultationTrend(query)` | `GET /admin/statistics/consultation-trend` | 咨询量趋势折线图 | StatisticsView |
+| `getCompletionTrend(query)` | `GET /admin/statistics/completion-trend` | 结案量趋势折线图 | StatisticsView |
+| `getNewStudentTrend(query)` | `GET /admin/statistics/new-student-trend` | 新增学生趋势折线图 | StatisticsView |
+| `getConsultationDistribution(query)` | `GET /admin/statistics/consultation-distribution` | 咨询分布饼图 | StatisticsView |
+| `getProblemTypeDistribution(query)` | `GET /admin/statistics/problem-type-distribution` | 问题类型饼图 | StatisticsView |
+| `getWorkloadChart(query)` | `GET /admin/statistics/workload-chart` | 咨询师工作量柱状图 | StatisticsView |
+| `getWorkloadTable(query)` | `GET /admin/statistics/workload-table` | 咨询师工作量表格 | StatisticsView |
 
 ### 9.3 数据格式
 
@@ -684,12 +686,10 @@ export interface StatisticsQuery {
 
 ```ts
 export interface OverviewStatsVO {
-  firstVisitAppointmentCount: number
-  pendingAppointmentCount: number
-  highRiskStudentCount: number
-  waitingQueueCount: number
-  consultationScheduleCount: number
-  closedCaseCount: number
+  totalConsultations: number
+  totalStudents: number
+  completedReports: number
+  activeCounselors: number
 }
 ```
 
@@ -756,8 +756,7 @@ export interface BarChartVO {
 {
   pageNum: number
   pageSize: number
-  operatorName?: string
-  moduleName?: string
+  keyword?: string
   operationType?: string
   resultStatus?: 'SUCCESS' | 'FAILED'
   startTime?: string

@@ -38,8 +38,8 @@ onMounted(async () => {
     try {
       const { data } = await getLatestFirstVisitForm()
       formId.value = data.data?.id ?? null
-    } catch (error) {
-      console.error('获取首访登记表失败', error)
+    } catch {
+      formId.value = null
     }
   }
 
@@ -54,7 +54,7 @@ onMounted(async () => {
       agreed.value = true
     }
   } catch (error) {
-    console.error('获取同意书状态失败', error)
+    message.error(getErrorMessage(error, '获取知情同意状态失败'))
   }
 })
 

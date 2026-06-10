@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { NDatePicker, NSelect, NCard, NList, NListItem, NTag, NSpace, NButton, NEmpty } from 'naive-ui'
+import { NDatePicker, NCard, NList, NListItem, NTag, NSpace, NButton, NEmpty, useMessage } from 'naive-ui'
 import { getAvailableSlots } from '@/api/student'
 import type { AvailableSlot } from '@/types/student'
 
@@ -16,6 +16,7 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const message = useMessage()
 
 const selectedDate = ref<string | null>(null)
 const selectedInterviewerId = ref<number | null>(null)
@@ -40,7 +41,8 @@ async function fetchAvailableSlots() {
     const { data } = await getAvailableSlots(selectedDate.value, selectedInterviewerId.value || undefined)
     availableSlots.value = data.data || []
   } catch (error) {
-    console.error('获取可预约时间段失败:', error)
+    const maybeError = error as { response?: { data?: { message?: string } }; message?: string }
+    message.error(maybeError.response?.data?.message || maybeError.message || '获取可预约时间段失败')
     availableSlots.value = []
   } finally {
     loading.value = false
@@ -66,7 +68,7 @@ function getStatusType(slot: AvailableSlot) {
 
 // 获取状态文本
 function getStatusText(slot: AvailableSlot) {
-  return slot.available ? `剩余${slot.remaining}个名额` : '已约满'
+  return slot.available ? `剩余${slot.remaining}个名额` : slot.disabledReason || '已约满'
 }
 </script>
 
@@ -92,7 +94,11 @@ function getStatusText(slot: AvailableSlot) {
         <n-empty v-if="!loading && availableSlots.length === 0" description="暂无可用时间段" />
         
         <n-list v-else>
-          <n-list-item v-for="slot in availableSlots" :key="slot.dutyScheduleId">
+          <n-list-item
+            v-for="slot in availableSlots"
+            :key="slot.dutyScheduleId"
+            :class="{ 'slot-disabled': !slot.available }"
+          >
             <n-space align="center" justify="space-between">
               <n-space vertical>
                 <n-space align="center">
@@ -153,5 +159,9 @@ function getStatusText(slot: AvailableSlot) {
 .slot-info {
   color: #666;
   font-size: 14px;
+}
+
+.slot-disabled {
+  opacity: 0.55;
 }
 </style>
