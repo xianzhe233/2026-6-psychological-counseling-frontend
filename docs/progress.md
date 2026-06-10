@@ -613,3 +613,34 @@
 
 - `src/api/statistics.ts`、`src/api/logs.ts`、`src/api/counselor.ts`、`src/api/assistant.ts` 等后半段 API 模块仍存在 mock 实现，下一轮应按后端真实接口逐页切换并联调。
 
+---
+
+## 2026-06-10 qxz review 修复：阶段7真实接口联调回归
+
+### 完成内容
+
+- 复核 zyt 将助理/咨询师/统计/日志切到真实接口后的页面行为，修复统计页首次进入默认不传日期范围、直接触发后端 400 的问题，改为默认查询当月数据。
+- 修复助理咨询队列状态枚举不一致问题，将前端 `DEFERRED` 改为与后端一致的 `SUSPENDED`，同步更新筛选项与状态标签展示。
+- 修复通知日志与操作日志时间筛选参数格式，改为发送整日边界的 `yyyy-MM-dd HH:mm:ss`，避免后端 `LocalDateTime` 参数解析失败。
+- 为操作日志页面补回真实 `moduleName` 查询参数透传，并补齐通知类型选项，避免界面展示可选但请求未生效。
+
+### 影响文件
+
+- `src/api/assistant.ts`
+- `src/api/logs.ts`
+- `src/components/common/StatusTag.vue`
+- `src/views/assistant/ConsultationQueueView.vue`
+- `src/views/admin/StatisticsView.vue`
+- `src/views/admin/NotificationLogView.vue`
+- `src/views/admin/OperationLogView.vue`
+- `docs/progress.md`
+
+### 验证方式
+
+- `npm run typecheck`
+- `npm run build`
+
+### 遗留问题
+
+- 统计页当前已接入真实接口，但仍只展示 4 个总览指标和 4 组图表；若后续需要完全对齐后端已提供的全部统计端点，可继续扩展页面内容。
+

@@ -119,10 +119,11 @@ function buildQuery(): OperationLogQuery {
     pageNum: pagination.page,
     pageSize: pagination.pageSize,
     keyword: searchForm.operatorName.trim() || undefined,
+    moduleName: searchForm.moduleName ?? undefined,
     operationType: searchForm.operationType ?? undefined,
     resultStatus: searchForm.resultStatus ?? undefined,
-    startTime: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD') : undefined,
-    endTime: searchForm.dateRange ? dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD') : undefined,
+    startTime: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).startOf('day').format('YYYY-MM-DD HH:mm:ss') : undefined,
+    endTime: searchForm.dateRange ? dayjs(searchForm.dateRange[1]).endOf('day').format('YYYY-MM-DD HH:mm:ss') : undefined,
   }
 }
 
