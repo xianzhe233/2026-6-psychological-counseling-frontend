@@ -361,7 +361,12 @@ async function handleSubmit() {
   } catch (error: unknown) {
     const err = error as { response?: { data?: { message?: string } }; message?: string }
     const errorMsg = err.response?.data?.message || err.message || '保存值班安排失败'
-    if (errorMsg.includes('已存在') || errorMsg.includes('冲突') || errorMsg.includes('duplicate')) {
+    if (
+      errorMsg.includes('已存在')
+      || errorMsg.includes('冲突')
+      || errorMsg.includes('已有值班安排')
+      || errorMsg.includes('duplicate')
+    ) {
       message.error(`该值班安排已存在：${errorMsg}`)
     } else {
       message.error(errorMsg)
