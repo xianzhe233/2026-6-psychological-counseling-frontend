@@ -60,6 +60,8 @@ export interface ConsultationQueueDetailVO {
   schedules: ConsultationScheduleVO[]
 }
 
+export type ConsultationArrangeDetailVO = ConsultationQueueDetailVO
+
 export interface ConsultationScheduleVO {
   id: number
   scheduleNo: string
