@@ -171,10 +171,10 @@ onMounted(() => {
           />
         </n-form-item>
         <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable />
+          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item label="风险等级">
-          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable />
+          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item>
           <n-space>

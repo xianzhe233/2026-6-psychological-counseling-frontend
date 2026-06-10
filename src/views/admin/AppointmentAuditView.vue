@@ -168,6 +168,7 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
     title: '状态',
     key: 'appointmentStatus',
     width: 100,
+    fixed: 'right',
     render(row) {
       return h(StatusTag, { value: row.appointmentStatus })
     },
@@ -175,17 +176,17 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
   {
     title: '优先',
     key: 'priorityFlag',
-    width: 80,
+    width: 90,
     render(row) {
       return row.priorityFlag === 1
-        ? h(NTag, { round: true, type: 'warning' }, { default: () => '优先' })
-        : '-'
+        ? h(NTag, { round: true, type: 'warning', size: 'small' }, { default: () => '优先' })
+        : null
     },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 260,
     fixed: 'right',
     render(row) {
       return h(NSpace, { size: 'small', wrapItem: false }, {
@@ -201,7 +202,7 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
             ? h(NButton, { size: 'small', type: 'warning', onClick: () => handleOpenReschedule(row.id) }, { default: () => '改约' })
             : null,
           row.priorityFlag === 0
-            ? h(NButton, { size: 'small', tertiary: true, type: 'info', onClick: () => void handlePriority(row.id) }, { default: () => '优先' })
+            ? h(NButton, { size: 'small', tertiary: true, type: 'info', onClick: () => void handlePriority(row.id) }, { default: () => '标记优先' })
             : null,
         ].filter(Boolean)
       })
@@ -547,13 +548,13 @@ onMounted(async () => {
           <n-input v-model:value="searchForm.keyword" placeholder="预约编号/姓名/学号/院系" clearable />
         </n-form-item>
         <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable />
+          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item label="风险等级">
-          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable />
+          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item label="优先标记">
-          <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable />
+          <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable style="min-width: 100px" />
         </n-form-item>
         <n-form-item label="日期范围">
           <n-date-picker
@@ -577,7 +578,7 @@ onMounted(async () => {
         :loading="loading"
         :pagination="pagination"
         :row-class-name="rowClassName"
-        :scroll-x="1650"
+        :scroll-x="1900"
         remote
         striped
         @update:page="handlePageChange"
@@ -716,11 +717,15 @@ onMounted(async () => {
   padding: 16px;
 }
 
-:deep(.high-risk-row td) {
-  background-color: rgba(208, 48, 80, 0.06);
+:deep(.n-data-table .n-data-table-tr.high-risk-row td:not(.n-data-table-td--fixed-right)) {
+  background-color: rgba(208, 48, 80, 0.06) !important;
 }
 
-:deep(.high-risk-row:hover td) {
-  background-color: rgba(208, 48, 80, 0.12);
+:deep(.n-data-table .n-data-table-tr.high-risk-row:hover td:not(.n-data-table-td--fixed-right)) {
+  background-color: rgba(208, 48, 80, 0.12) !important;
+}
+
+:deep(.n-data-table .n-data-table-tr.high-risk-row.n-data-table-tr--hover td:not(.n-data-table-td--fixed-right)) {
+  background-color: rgba(208, 48, 80, 0.12) !important;
 }
 </style>

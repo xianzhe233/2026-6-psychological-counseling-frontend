@@ -26,6 +26,10 @@ const submitting = ref(false)
 const showModal = ref(false)
 const editingSlot = ref<TimeSlotVO | null>(null)
 
+const searchForm = reactive({
+  keyword: '',
+})
+
 const slotForm = reactive({
   slotName: '',
   startTime: null as string | null,
@@ -88,6 +92,7 @@ async function fetchData() {
     const result = await pageTimeSlots({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
+      keyword: searchForm.keyword || undefined,
     })
     data.value = result.records
     pagination.itemCount = result.total
@@ -96,6 +101,16 @@ async function fetchData() {
   } finally {
     loading.value = false
   }
+}
+
+function handleSearch() {
+  pagination.page = 1
+  void fetchData()
+}
+
+function handleReset() {
+  searchForm.keyword = ''
+  handleSearch()
 }
 
 function handleAdd() {
@@ -183,6 +198,18 @@ onMounted(() => {
         <n-button type="primary" @click="handleAdd">新增时间段</n-button>
       </template>
 
+      <n-form inline :model="searchForm" @submit.prevent="handleSearch" style="margin-bottom: 16px">
+        <n-form-item label="关键词">
+          <n-input v-model:value="searchForm.keyword" placeholder="时间段名称" clearable />
+        </n-form-item>
+        <n-form-item>
+          <n-space>
+            <n-button type="primary" attr-type="submit">搜索</n-button>
+            <n-button @click="handleReset">重置</n-button>
+          </n-space>
+        </n-form-item>
+      </n-form>
+
       <n-data-table
         :columns="columns"
         :data="data"
@@ -204,16 +231,16 @@ onMounted(() => {
         <n-form-item label="开始时间" required>
           <n-time-picker
             v-model:formatted-value="slotForm.startTime"
-            format="HH:mm"
-            value-format="HH:mm"
+            format="HH:mm:ss"
+            value-format="HH:mm:ss"
             placeholder="选择开始时间"
           />
         </n-form-item>
         <n-form-item label="结束时间" required>
           <n-time-picker
             v-model:formatted-value="slotForm.endTime"
-            format="HH:mm"
-            value-format="HH:mm"
+            format="HH:mm:ss"
+            value-format="HH:mm:ss"
             placeholder="选择结束时间"
           />
         </n-form-item>
