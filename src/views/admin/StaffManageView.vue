@@ -246,10 +246,10 @@ onMounted(() => {
           <n-input v-model:value="searchForm.keyword" placeholder="工号/姓名/手机号" clearable />
         </n-form-item>
         <n-form-item label="类型">
-          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable />
+          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable style="min-width: 100px" />
         </n-form-item>
         <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
+          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable style="min-width: 100px" />
         </n-form-item>
         <n-form-item>
           <n-space>

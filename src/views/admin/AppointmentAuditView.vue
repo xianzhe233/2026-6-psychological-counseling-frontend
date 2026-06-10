@@ -548,13 +548,13 @@ onMounted(async () => {
           <n-input v-model:value="searchForm.keyword" placeholder="预约编号/姓名/学号/院系" clearable />
         </n-form-item>
         <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable />
+          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item label="风险等级">
-          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable />
+          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item label="优先标记">
-          <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable />
+          <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable style="min-width: 100px" />
         </n-form-item>
         <n-form-item label="日期范围">
           <n-date-picker

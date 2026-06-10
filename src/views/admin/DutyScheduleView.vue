@@ -466,10 +466,10 @@ onMounted(async () => {
     <n-card title="值班管理">
       <n-form inline :model="searchForm" @submit.prevent="handleSearch">
         <n-form-item label="类型">
-          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable />
+          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable style="min-width: 100px" />
         </n-form-item>
         <n-form-item label="工作人员">
-          <n-select v-model:value="searchForm.staffId" :options="searchStaffOptions" placeholder="选择工作人员" clearable />
+          <n-select v-model:value="searchForm.staffId" :options="searchStaffOptions" placeholder="选择工作人员" clearable style="min-width: 120px" />
         </n-form-item>
         <n-form-item label="日期范围">
           <n-date-picker
@@ -480,7 +480,7 @@ onMounted(async () => {
           />
         </n-form-item>
         <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
+          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable style="min-width: 100px" />
         </n-form-item>
         <n-form-item>
           <n-space>
