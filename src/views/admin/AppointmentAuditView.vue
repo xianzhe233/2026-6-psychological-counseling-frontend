@@ -175,17 +175,18 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
   {
     title: '优先',
     key: 'priorityFlag',
-    width: 80,
+    width: 90,
+    fixed: 'right',
     render(row) {
       return row.priorityFlag === 1
-        ? h(NTag, { round: true, type: 'warning' }, { default: () => '优先' })
-        : '-'
+        ? h(NTag, { round: true, type: 'warning', size: 'small' }, { default: () => '优先' })
+        : null
     },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 260,
     fixed: 'right',
     render(row) {
       return h(NSpace, { size: 'small', wrapItem: false }, {
@@ -201,7 +202,7 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
             ? h(NButton, { size: 'small', type: 'warning', onClick: () => handleOpenReschedule(row.id) }, { default: () => '改约' })
             : null,
           row.priorityFlag === 0
-            ? h(NButton, { size: 'small', tertiary: true, type: 'info', onClick: () => void handlePriority(row.id) }, { default: () => '优先' })
+            ? h(NButton, { size: 'small', tertiary: true, type: 'info', onClick: () => void handlePriority(row.id) }, { default: () => '标记优先' })
             : null,
         ].filter(Boolean)
       })
@@ -716,11 +717,19 @@ onMounted(async () => {
   padding: 16px;
 }
 
-:deep(.high-risk-row td) {
-  background-color: rgba(208, 48, 80, 0.06);
+:deep(.n-data-table .n-data-table-tr.high-risk-row) {
+  background-color: rgba(208, 48, 80, 0.06) !important;
 }
 
-:deep(.high-risk-row:hover td) {
-  background-color: rgba(208, 48, 80, 0.12);
+:deep(.n-data-table .n-data-table-tr.high-risk-row td) {
+  background-color: rgba(208, 48, 80, 0.06) !important;
+}
+
+:deep(.n-data-table .n-data-table-tr.high-risk-row:hover td) {
+  background-color: rgba(208, 48, 80, 0.12) !important;
+}
+
+:deep(.n-data-table .n-data-table-tr.high-risk-row.n-data-table-tr--hover td) {
+  background-color: rgba(208, 48, 80, 0.12) !important;
 }
 </style>
