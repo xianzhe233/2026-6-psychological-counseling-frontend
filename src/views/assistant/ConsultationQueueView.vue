@@ -75,7 +75,7 @@ const columns: DataTableColumns<ConsultationQueueVO> = [
     width: 150,
     render(row) {
       return h('div', { class: 'queue-cell' }, [
-        h('div', { class: 'queue-cell__main' }, row.problemTypeLabel),
+        h('div', { class: 'queue-cell__main' }, row.problemTypeName),
         h(RiskTag, { value: row.crisisLevel }),
         h('div', { class: 'queue-cell__sub' }, `优先级 ${row.priorityScore}`),
         h('div', { class: 'queue-cell__sub' }, row.enqueueTime),
@@ -88,7 +88,7 @@ const columns: DataTableColumns<ConsultationQueueVO> = [
     width: 120,
     render(row) {
       return h('div', { class: 'queue-actions' }, [
-        h(StatusTag, { value: row.status, type: 'queue' }),
+        h(StatusTag, { value: row.queueStatus, type: 'queue' }),
         h(NSpace, { size: 'small', wrapItem: false }, {
           default: () => [
             h(
@@ -96,12 +96,12 @@ const columns: DataTableColumns<ConsultationQueueVO> = [
               {
                 size: 'small',
                 type: 'primary',
-                disabled: row.status === 'ARRANGED',
+                disabled: row.queueStatus === 'ARRANGED',
                 onClick: () => handleArrange(row),
               },
-              { default: () => row.status === 'ARRANGED' ? '已安排' : '安排' },
+              { default: () => row.queueStatus === 'ARRANGED' ? '已安排' : '安排' },
             ),
-            row.status === 'WAITING'
+            row.queueStatus === 'WAITING'
               ? h(
                 NPopconfirm,
                 { onPositiveClick: () => handleDefer(row) },
@@ -182,12 +182,12 @@ function handleStatusChange(event: Event) {
 }
 
 function handleArrange(row: ConsultationQueueVO) {
-  router.push(`/assistant/queue/${row.queueId}/arrange`)
+  router.push(`/assistant/queue/${row.id}/arrange`)
 }
 
 async function handleDefer(row: ConsultationQueueVO) {
   try {
-    await deferConsultationQueue(row.queueId)
+    await deferConsultationQueue(row.id)
     message.success('已暂缓该队列记录')
     await fetchData()
   } catch (error) {
@@ -259,7 +259,7 @@ onMounted(() => {
         :data="data"
         :pagination="pagination"
         :row-class-name="rowClassName"
-        :row-key="(row: ConsultationQueueVO) => row.queueId"
+        :row-key="(row: ConsultationQueueVO) => row.id"
         :bordered="false"
         :scroll-x="370"
         @update:page="(page: number) => { pagination.page = page; fetchData() }"

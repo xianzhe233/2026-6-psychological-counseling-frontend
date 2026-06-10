@@ -22,7 +22,7 @@ import {
   getConsultationRoomOptions,
   getConsultationTimeSlotOptions,
 } from '@/api/assistant'
-import type { ConsultationArrangeDetailVO, FormalConsultationArrangeRequest } from '@/api/assistant'
+import type { ArrangeConsultationRequest, ConsultationArrangeDetailVO } from '@/api/assistant'
 import type { OptionItem } from '@/api/admin'
 
 const route = useRoute()
@@ -39,7 +39,9 @@ const counselorOptions = ref<OptionItem[]>([])
 const roomOptions = ref<OptionItem[]>([])
 const timeSlotOptions = ref<OptionItem[]>([])
 
-const form = reactive<FormalConsultationArrangeRequest>({
+const form = reactive<ArrangeConsultationRequest>({
+  queueId: 0,
+  studentId: 0,
   counselorId: 0,
   consultationDate: '',
   slotId: 0,
@@ -60,6 +62,8 @@ const arrangePreview = computed(() => {
 })
 
 function resetForm() {
+  form.queueId = queueId.value
+  form.studentId = detail.value?.studentId ?? 0
   form.counselorId = 0
   form.consultationDate = ''
   form.slotId = 0
@@ -69,14 +73,15 @@ function resetForm() {
 
 function fillFormFromArrangedInfo() {
   resetForm()
-  const arranged = detail.value?.arrangedInfo
-  if (!arranged) return
+  const schedules = detail.value?.schedules
+  if (!schedules || schedules.length === 0) return
+  const arranged = schedules[0]
 
   form.counselorId = arranged.counselorId
   form.consultationDate = arranged.consultationDate
   form.slotId = arranged.slotId
   form.roomId = arranged.roomId
-  form.remark = arranged.remark || ''
+  form.remark = ''
 }
 
 async function fetchBaseOptions() {
@@ -161,7 +166,9 @@ async function handleSubmit() {
   submitting.value = true
   submitError.value = ''
   try {
-    await arrangeFormalConsultation(queueId.value, {
+    await arrangeFormalConsultation({
+      queueId: queueId.value,
+      studentId: detail.value!.studentId,
       counselorId: form.counselorId,
       consultationDate: form.consultationDate,
       slotId: form.slotId,
@@ -229,10 +236,10 @@ onMounted(async () => {
             <n-descriptions-item label="学号">{{ detail.studentNo }}</n-descriptions-item>
             <n-descriptions-item label="院系">{{ detail.college || '-' }}</n-descriptions-item>
             <n-descriptions-item label="联系电话">{{ detail.phone || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="问题类型">{{ detail.problemTypeLabel }}</n-descriptions-item>
+            <n-descriptions-item label="问题类型">{{ detail.problemTypeName }}</n-descriptions-item>
             <n-descriptions-item label="危机等级"><RiskTag :value="detail.crisisLevel" /></n-descriptions-item>
             <n-descriptions-item label="优先级分数">{{ detail.priorityScore }}</n-descriptions-item>
-            <n-descriptions-item label="队列状态"><StatusTag :value="detail.status" type="queue" /></n-descriptions-item>
+            <n-descriptions-item label="队列状态"><StatusTag :value="detail.queueStatus" type="queue" /></n-descriptions-item>
           </n-descriptions>
         </n-card>
 
@@ -243,11 +250,11 @@ onMounted(async () => {
             <n-descriptions-item label="主要困扰">{{ detail.mainProblem }}</n-descriptions-item>
             <n-descriptions-item label="期望帮助">{{ detail.expectedHelp || '-' }}</n-descriptions-item>
             <n-descriptions-item label="问题描述" :span="2">{{ detail.problemDescription || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="初访摘要" :span="2">{{ detail.initialSummary || '-' }}</n-descriptions-item>
+            <n-descriptions-item label="初访摘要" :span="2">{{ detail.summary || '-' }}</n-descriptions-item>
             <n-descriptions-item label="后续建议" :span="2">{{ detail.nextAction || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="初始风险分">{{ detail.initialRiskScore }}</n-descriptions-item>
-            <n-descriptions-item label="风险信号">
-              情绪 {{ detail.moodScore }}/10，睡眠 {{ detail.sleepScore }}/10，压力 {{ detail.stressScore }}/10
+            <n-descriptions-item label="风险分">{{ detail.riskScore }}</n-descriptions-item>
+            <n-descriptions-item label="风险等级">
+              <RiskTag :value="detail.riskLevel" />
             </n-descriptions-item>
           </n-descriptions>
         </n-card>
