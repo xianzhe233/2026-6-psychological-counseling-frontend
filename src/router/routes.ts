@@ -100,6 +100,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, roles: ['ADMIN'], title: '统计看板' }
       },
       {
+        path: 'admin/case-reports',
+        name: 'AdminCaseReports',
+        component: () => import('@/views/admin/CaseReportManageView.vue'),
+        meta: { requiresAuth: true, roles: ['ADMIN'], title: '结案报告管理' }
+      },
+      {
         path: 'admin/logs/notifications',
         name: 'AdminNotificationLogs',
         component: () => import('@/views/admin/NotificationLogView.vue'),

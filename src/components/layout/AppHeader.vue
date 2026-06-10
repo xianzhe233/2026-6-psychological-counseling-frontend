@@ -20,7 +20,7 @@ async function handleLogout() {
   <header class="app-header">
     <div>
       <div class="app-header__title">{{ $route.meta.title || '工作台' }}</div>
-      <div class="app-header__hint">开发骨架已就绪，可在对应路由下继续实现业务页面。</div>
+      <div class="app-header__hint">统一管理预约、咨询安排、记录、报告与统计等业务流程。</div>
     </div>
     <n-space align="center">
       <n-tag type="success" size="small">{{ roleLabel }}</n-tag>
