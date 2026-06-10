@@ -52,5 +52,5 @@ export function getDefaultRouteByRoles(roles: RoleCode[]) {
   if (roles.includes('INTERVIEWER')) return '/interviewer/tasks'
   if (roles.includes('ASSISTANT')) return '/assistant/queue'
   if (roles.includes('COUNSELOR')) return '/counselor/schedules'
-  return '/student/appointments'
+  return '/student/first-visit-form'
 }

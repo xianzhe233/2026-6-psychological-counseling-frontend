@@ -9,7 +9,7 @@ import type {
   AppointmentCreateRequest,
   Appointment,
   AppointmentCancelRequest,
-  Notification
+  Notification,
 } from '@/types/student'
 
 export function getLatestFirstVisitForm() {
@@ -30,7 +30,7 @@ export function signConsent(data: ConsentSignRequest) {
 
 export function getAvailableSlots(date: string, interviewerId?: number) {
   return http.get<ApiResult<AvailableSlot[]>>('/student/appointments/available-slots', {
-    params: { date, interviewerId }
+    params: { date, interviewerId },
   })
 }
 
@@ -42,6 +42,8 @@ export function getMyAppointments(params: {
   pageNum: number
   pageSize: number
   status?: string
+  startDate?: string
+  endDate?: string
 }) {
   return http.get<ApiResult<{ records: Appointment[]; total: number }>>('/student/appointments', { params })
 }

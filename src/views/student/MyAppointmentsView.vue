@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import dayjs from 'dayjs'
 import {
   NButton,
   NCard,
   NDataTable,
+  NDatePicker,
   NInput,
   NModal,
   NSelect,
@@ -36,6 +38,7 @@ const statusOptions = [
 ]
 
 const statusFilter = ref('')
+const dateRange = ref<[number, number] | null>(null)
 
 const pagination = reactive({
   page: 1,
@@ -115,6 +118,22 @@ const columns: DataTableColumns<Appointment> = [
   },
 ]
 
+function formatDate(timestamp: number) {
+  return dayjs(timestamp).format('YYYY-MM-DD')
+}
+
+function getDateRangeParams() {
+  if (!dateRange.value || dateRange.value.length !== 2) {
+    return {}
+  }
+
+  const [start, end] = dateRange.value
+  return {
+    startDate: formatDate(start),
+    endDate: formatDate(end),
+  }
+}
+
 async function fetchData() {
   loading.value = true
   try {
@@ -122,6 +141,7 @@ async function fetchData() {
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
       status: statusFilter.value || undefined,
+      ...getDateRangeParams(),
     })
     const result = response.data.data
     data.value = result?.records || []
@@ -133,9 +153,15 @@ async function fetchData() {
   }
 }
 
-function handleStatusChange() {
+function applyFilters() {
   pagination.page = 1
   fetchData()
+}
+
+function handleResetFilters() {
+  statusFilter.value = ''
+  dateRange.value = null
+  applyFilters()
 }
 
 function openCancelModal(appointment: Appointment) {
@@ -186,8 +212,21 @@ onMounted(() => {
             placeholder="筛选状态"
             clearable
             style="width: 150px"
-            @update:value="handleStatusChange"
           />
+          <n-date-picker
+            v-model:value="dateRange"
+            type="daterange"
+            clearable
+            style="width: 260px"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+          />
+          <n-button @click="applyFilters">
+            查询
+          </n-button>
+          <n-button quaternary @click="handleResetFilters">
+            重置
+          </n-button>
           <n-button type="primary" @click="handleCreateAppointment">
             新建预约
           </n-button>
