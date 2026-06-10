@@ -51,7 +51,6 @@ const form = reactive<CaseReportRequest>({
   counselingEffect: '',
   suggestion: '',
   closeType: 'NORMAL',
-  reportStatus: 'DRAFT',
 })
 
 const pagination = reactive({
@@ -145,7 +144,6 @@ function resetForm() {
     counselingEffect: '',
     suggestion: '',
     closeType: 'NORMAL' as CloseType,
-    reportStatus: 'DRAFT' as ReportStatus,
   })
 }
 
@@ -220,15 +218,13 @@ function validateExistingReportForSubmit(report: CaseReportVO) {
   return true
 }
 
-async function persistReport(nextStatus: ReportStatus) {
-  const isSubmit = nextStatus === 'SUBMITTED'
-  if (!validateForm(isSubmit)) return
+async function persistReport() {
+  if (!validateForm(false)) return
 
   submitting.value = true
   try {
     const payload: CaseReportRequest = {
       ...form,
-      reportStatus: nextStatus,
     }
     if (editingId.value) {
       await updateCaseReport(editingId.value, payload)
@@ -236,10 +232,36 @@ async function persistReport(nextStatus: ReportStatus) {
       const created = await saveCaseReport(payload)
       editingId.value = created.id
     }
-    message.success(isSubmit ? '结案报告已提交' : '结案报告草稿已保存')
+    message.success('结案报告草稿已保存')
     await fetchData()
   } catch (error) {
     message.error(error instanceof Error ? error.message : '保存结案报告失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function handleSubmitCurrentForm() {
+  if (!validateForm(true)) return
+
+  submitting.value = true
+  try {
+    const payload: CaseReportRequest = {
+      ...form,
+    }
+    let reportId = editingId.value
+    if (reportId) {
+      await updateCaseReport(reportId, payload)
+    } else {
+      const created = await saveCaseReport(payload)
+      reportId = created.id
+      editingId.value = created.id
+    }
+    await submitCaseReport(reportId)
+    message.success('结案报告已提交')
+    await fetchData()
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '提交结案报告失败')
   } finally {
     submitting.value = false
   }
@@ -256,7 +278,6 @@ function handleEdit(row: CaseReportVO) {
     counselingEffect: row.counselingEffect || '',
     suggestion: row.suggestion || '',
     closeType: row.closeType,
-    reportStatus: row.reportStatus,
   })
 }
 
@@ -276,8 +297,8 @@ async function handleSubmitReport(id: number) {
 
 async function handleDownload(id: number) {
   try {
-    const result = await downloadMyCaseReportWord(id)
-    message.success(`已触发 Word 下载：${result.fileName}`)
+    await downloadMyCaseReportWord(id)
+    message.success('已触发 Word 下载')
   } catch (error) {
     message.error(error instanceof Error ? error.message : '下载 Word 失败')
   }
@@ -364,8 +385,8 @@ onMounted(() => {
 
       <div class="form-actions">
         <n-button @click="resetForm">新建/重置</n-button>
-        <n-button :loading="submitting" @click="persistReport('DRAFT')">保存草稿</n-button>
-        <n-popconfirm @positive-click="persistReport('SUBMITTED')">
+        <n-button :loading="submitting" @click="persistReport">保存草稿</n-button>
+        <n-popconfirm @positive-click="handleSubmitCurrentForm">
           <template #trigger>
             <n-button type="primary" :loading="submitting">提交报告</n-button>
           </template>

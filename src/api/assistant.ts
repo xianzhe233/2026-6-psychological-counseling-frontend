@@ -158,15 +158,18 @@ export async function getConsultationQueueOptions(): Promise<OptionItem[]> {
 }
 
 export async function getConsultationCounselorOptions(): Promise<OptionItem[]> {
-  return getStaffOptionsReal('COUNSELOR')
+  const { data } = await getStaffOptionsReal('COUNSELOR')
+  return data.data
 }
 
 export async function getConsultationRoomOptions(): Promise<OptionItem[]> {
-  return getRoomOptionsReal()
+  const { data } = await getRoomOptionsReal()
+  return data.data
 }
 
 export async function getConsultationTimeSlotOptions(): Promise<OptionItem[]> {
-  return getTimeSlotOptionsReal()
+  const { data } = await getTimeSlotOptionsReal()
+  return data.data
 }
 
 export async function getAvailableSlots(counselorId: number, startDate: string): Promise<AvailableSlotVO[]> {
