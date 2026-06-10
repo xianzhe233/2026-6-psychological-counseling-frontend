@@ -45,7 +45,11 @@ const pagination = reactive({
 const notifyTypeOptions = [
   { label: '预约通过', value: 'APPOINTMENT_APPROVED' },
   { label: '预约驳回', value: 'APPOINTMENT_REJECTED' },
+  { label: '预约改约', value: 'APPOINTMENT_RESCHEDULED' },
   { label: '咨询安排', value: 'CONSULTATION_ARRANGED' },
+  { label: '咨询取消', value: 'CONSULTATION_CANCELED' },
+  { label: '追加通过', value: 'EXTENSION_APPROVED' },
+  { label: '追加驳回', value: 'EXTENSION_REJECTED' },
   { label: '日程提醒', value: 'SCHEDULE_REMINDER' },
   { label: '结案报告', value: 'CASE_REPORT_SUBMITTED' },
   { label: '队列更新', value: 'QUEUE_UPDATE' },
@@ -101,8 +105,8 @@ function buildQuery(): NotificationLogQuery {
     keyword: searchForm.keyword.trim() || undefined,
     notifyType: searchForm.notifyType ?? undefined,
     sendStatus: searchForm.sendStatus ?? undefined,
-    startTime: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD') : undefined,
-    endTime: searchForm.dateRange ? dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD') : undefined,
+    startTime: searchForm.dateRange ? dayjs(searchForm.dateRange[0]).startOf('day').format('YYYY-MM-DD HH:mm:ss') : undefined,
+    endTime: searchForm.dateRange ? dayjs(searchForm.dateRange[1]).endOf('day').format('YYYY-MM-DD HH:mm:ss') : undefined,
   }
 }
 

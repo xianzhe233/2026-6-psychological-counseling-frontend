@@ -2,7 +2,7 @@ import { http } from './http'
 import type { OptionItem, PageResult } from './admin'
 import { getRoomOptionsReal, getStaffOptionsReal, getTimeSlotOptionsReal } from './admin'
 
-export type QueueStatus = 'WAITING' | 'ARRANGED' | 'DEFERRED'
+export type QueueStatus = 'WAITING' | 'ARRANGED' | 'SUSPENDED'
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
 export interface ConsultationQueueQuery {

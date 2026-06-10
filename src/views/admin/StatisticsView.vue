@@ -21,8 +21,6 @@ import {
 } from 'naive-ui'
 
 import PageHeader from '@/components/common/PageHeader.vue'
-import { getStaffOptionsReal } from '@/api/admin'
-import type { OptionItem } from '@/api/admin'
 import {
   getConsultationDistribution,
   getConsultationTrend,
@@ -30,7 +28,7 @@ import {
   getProblemTypeDistribution,
   getWorkloadChart,
 } from '@/api/statistics'
-import type { ChartVO, CounselorWorkloadVO, OverviewStatsVO, PieItemVO, StatisticsQuery } from '@/api/statistics'
+import type { ChartVO, OverviewStatsVO, PieItemVO, StatisticsQuery } from '@/api/statistics'
 
 use([BarChart, LineChart, PieChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, CanvasRenderer])
 
@@ -44,11 +42,15 @@ const consultationDist = ref<PieItemVO[]>([])
 const workloadChart = ref<ChartVO | null>(null)
 const workloadTable = ref<CounselorWorkloadVO[]>([])
 
-const counselorOptions = ref<OptionItem[]>([])
-const problemTypeOptions = ref<OptionItem[]>([])
+function getDefaultDateRange(): [number, number] {
+  return [
+    dayjs().startOf('month').valueOf(),
+    dayjs().endOf('day').valueOf(),
+  ]
+}
 
 const searchForm = reactive({
-  dateRange: null as [number, number] | null,
+  dateRange: getDefaultDateRange(),
 })
 
 const trendChartRef = ref<HTMLDivElement | null>(null)
@@ -218,15 +220,6 @@ function handleResize() {
   workloadChartIns?.resize()
 }
 
-async function loadFilterOptions() {
-  try {
-    const counselors = await getStaffOptionsReal('COUNSELOR')
-    counselorOptions.value = counselors
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载筛选选项失败')
-  }
-}
-
 async function fetchData() {
   loading.value = true
   try {
@@ -257,13 +250,12 @@ function handleSearch() {
 }
 
 function handleReset() {
-  searchForm.dateRange = null
+  searchForm.dateRange = getDefaultDateRange()
   handleSearch()
 }
 
 onMounted(async () => {
   window.addEventListener('resize', handleResize)
-  await loadFilterOptions()
   await fetchData()
 })
 

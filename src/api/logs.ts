@@ -26,6 +26,7 @@ export interface OperationLogQuery {
   pageNum: number
   pageSize: number
   keyword?: string
+  moduleName?: string
   operationType?: string
   resultStatus?: string
   startTime?: string

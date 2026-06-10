@@ -54,7 +54,7 @@ const crisisLevelOptions = [
 const statusOptions = [
   { label: '排队中', value: 'WAITING' },
   { label: '已安排', value: 'ARRANGED' },
-  { label: '已暂缓', value: 'DEFERRED' },
+  { label: '已暂缓', value: 'SUSPENDED' },
 ]
 
 const columns: DataTableColumns<ConsultationQueueVO> = [
