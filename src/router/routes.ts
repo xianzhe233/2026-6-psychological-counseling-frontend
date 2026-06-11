@@ -28,6 +28,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: '工作台' }
       },
       {
+        path: 'student',
+        name: 'StudentHome',
+        component: () => import('@/views/student/StudentHomeView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '学生首页' }
+      },
+      {
         path: 'student/first-visit-form',
         name: 'StudentFirstVisitForm',
         component: () => import('@/views/student/FirstVisitFormView.vue'),
