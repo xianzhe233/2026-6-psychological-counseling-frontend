@@ -1,4 +1,5 @@
 import { http } from './http'
+import { saveBlobResponse } from './download'
 import type { OptionItem, PageResult } from './admin'
 
 export type ScheduleStatus = 'RESERVED' | 'COMPLETED' | 'ABSENT' | 'LEAVE' | 'DROPPED' | 'CLOSED' | 'CANCELED'
@@ -171,18 +172,10 @@ export async function submitCaseReport(id: number): Promise<CaseReportVO> {
 }
 
 export async function downloadMyCaseReportWord(id: number): Promise<void> {
-  const response = await http.get(`/counselor/case-reports/${id}/export-word`, {
+  const response = await http.get<Blob>(`/counselor/case-reports/${id}/export-word`, {
     responseType: 'blob',
   })
-  const contentDisposition = response.headers['content-disposition'] ?? ''
-  const match = contentDisposition.match(/filename\*?=(?:UTF-8''|"?)?"?([^";]+)"?/)
-  const fileName = match?.[1] ?? '结案报告.docx'
-  const url = URL.createObjectURL(response.data as Blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = decodeURIComponent(fileName)
-  anchor.click()
-  URL.revokeObjectURL(url)
+  await saveBlobResponse(response, '结案报告.docx')
 }
 
 export async function getCounselorStudentOptions(): Promise<OptionItem[]> {

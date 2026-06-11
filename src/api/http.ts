@@ -10,6 +10,10 @@ export const http = axios.create({
 
 http.interceptors.response.use(
   (response) => {
+    if (response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer') {
+      return response
+    }
+
     const result = response.data as { code?: number; message?: string }
     if (typeof result?.code === 'number' && result.code !== 200) {
       if (result.code === 401) {
