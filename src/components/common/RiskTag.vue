@@ -1,27 +1,71 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NTag } from 'naive-ui'
+import { NIcon, NTag } from 'naive-ui'
+import {
+  AlertCircleOutline,
+  AlertOutline,
+  CheckmarkCircleOutline,
+  WarningOutline,
+} from '@vicons/ionicons5'
 
-const props = defineProps<{
-  value: string
-}>()
+import { resolveStatus, riskLevelMap } from '@/constants/status-colors'
 
-const config = computed(() => {
+const props = withDefaults(
+  defineProps<{
+    value: string
+    size?: 'small' | 'medium' | 'large'
+    bordered?: boolean
+    round?: boolean
+    showIcon?: boolean
+    strong?: boolean
+  }>(),
+  {
+    size: 'small',
+    bordered: false,
+    round: true,
+    showIcon: false,
+    strong: true,
+  },
+)
+
+const config = computed(() => resolveStatus(props.value, riskLevelMap))
+
+const iconComponent = computed(() => {
   switch (props.value) {
     case 'LOW':
-      return { label: '低风险', type: 'success' as const }
+      return CheckmarkCircleOutline
     case 'MEDIUM':
-      return { label: '中风险', type: 'warning' as const }
+      return WarningOutline
     case 'HIGH':
-      return { label: '高风险', type: 'error' as const }
+      return AlertOutline
     case 'URGENT':
-      return { label: '紧急风险', type: 'error' as const }
+      return AlertCircleOutline
     default:
-      return { label: props.value, type: 'default' as const }
+      return AlertOutline
+  }
+})
+
+const tagStyle = computed(() => {
+  if (!props.strong || !config.value.background) return undefined
+  return {
+    background: config.value.background,
+    color: config.value.color,
+    borderColor: config.value.color,
   }
 })
 </script>
 
 <template>
-  <n-tag :type="config.type" round>{{ config.label }}</n-tag>
+  <n-tag
+    :type="config.type"
+    :size="size"
+    :bordered="bordered"
+    :round="round"
+    :style="tagStyle"
+  >
+    <template v-if="showIcon" #icon>
+      <n-icon :component="iconComponent" />
+    </template>
+    {{ config.label }}
+  </n-tag>
 </template>
