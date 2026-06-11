@@ -1,0 +1,257 @@
+/**
+ * 设计令牌（Design Tokens）
+ * 心理咨询管理系统 — 全局 CSS 自定义属性
+ *
+ * 使用方式：var(--color-primary)
+ * JS 侧（Naive UI 等）请同步引用 src/constants/design-tokens.ts
+ */
+
+:root {
+  /* ── 品牌主色 Primary ── */
+  --color-primary-50: #eef8f3;
+  --color-primary-100: #d4f0e4;
+  --color-primary-200: #a8e0c9;
+  --color-primary-300: #6ec9a5;
+  --color-primary-400: #3db28a;
+  --color-primary-500: #1f8f6a;
+  --color-primary-600: #167255;
+  --color-primary-700: #115c44;
+  --color-primary-800: #0d4634;
+  --color-primary-900: #082f23;
+
+  --color-primary: var(--color-primary-500);
+  --color-primary-hover: #2aa17a;
+  --color-primary-pressed: var(--color-primary-600);
+  --color-primary-subtle: rgba(31, 143, 106, 0.12);
+  --color-primary-muted: rgba(31, 143, 106, 0.18);
+  --color-primary-gradient-start: var(--color-primary-500);
+  --color-primary-gradient-end: var(--color-primary-400);
+
+  /* ── 语义色 Semantic ── */
+  --color-success: #18a058;
+  --color-success-subtle: rgba(24, 160, 88, 0.12);
+  --color-success-hover: #36ad6a;
+
+  --color-warning: #f0a020;
+  --color-warning-subtle: rgba(240, 160, 32, 0.12);
+  --color-warning-hover: #fcb040;
+
+  --color-error: #d03050;
+  --color-error-subtle: rgba(208, 48, 80, 0.12);
+  --color-error-hover: #de576d;
+
+  --color-info: #2080f0;
+  --color-info-subtle: rgba(32, 128, 240, 0.12);
+  --color-info-hover: #4098fc;
+
+  /* ── 危机等级 Risk ── */
+  --color-risk-low: #18a058;
+  --color-risk-low-subtle: rgba(24, 160, 88, 0.12);
+  --color-risk-medium: #f0a020;
+  --color-risk-medium-subtle: rgba(240, 160, 32, 0.12);
+  --color-risk-high: #f56c6c;
+  --color-risk-high-subtle: rgba(245, 108, 108, 0.12);
+  --color-risk-urgent: #d03050;
+  --color-risk-urgent-subtle: rgba(208, 48, 80, 0.15);
+
+  /* ── 文字 Text ── */
+  --color-text-primary: #18352b;
+  --color-text-secondary: #537065;
+  --color-text-tertiary: #658177;
+  --color-text-muted: #6d877e;
+  --color-text-quaternary: #698278;
+  --color-text-disabled: #a8bdb4;
+  --color-text-inverse: #ffffff;
+  --color-text-link: var(--color-primary);
+  --color-text-link-hover: var(--color-primary-hover);
+
+  /* ── 背景 Background ── */
+  --color-bg-base: #f4f7f1;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subtle: #f8faf7;
+  --color-bg-muted: #eef4ec;
+  --color-bg-accent: #f3f8f4;
+  --color-bg-warm: #f8f6f0;
+  --color-bg-overlay: rgba(255, 255, 255, 0.88);
+  --color-bg-sidebar: #ffffff;
+  --color-bg-header: var(--color-bg-overlay);
+
+  /* ── 边框 Border ── */
+  --color-border-default: #dce8e1;
+  --color-border-subtle: #e8f0eb;
+  --color-border-strong: #b8cfc3;
+  --color-border-focus: var(--color-primary);
+  --color-border-error: var(--color-error);
+
+  /* ── 阴影 Shadow ── */
+  --shadow-color: rgba(29, 52, 45, 0.08);
+  --shadow-color-strong: rgba(31, 53, 43, 0.12);
+  --shadow-color-primary: rgba(31, 143, 106, 0.2);
+
+  --shadow-xs: 0 1px 2px var(--shadow-color);
+  --shadow-sm: 0 4px 12px var(--shadow-color);
+  --shadow-md: 0 8px 24px var(--shadow-color);
+  --shadow-lg: 0 12px 30px var(--shadow-color);
+  --shadow-xl: 0 18px 44px var(--shadow-color-strong);
+  --shadow-card: var(--shadow-lg);
+  --shadow-dropdown: var(--shadow-md);
+  --shadow-modal: 0 20px 50px rgba(29, 52, 45, 0.15);
+
+  /* ── 圆角 Radius ── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  --radius-button: 10px;
+  --radius-card: var(--radius-lg);
+  --radius-input: var(--radius-md);
+  --radius-badge: var(--radius-full);
+  --radius-sidebar-badge: 14px;
+
+  /* ── 间距 Spacing ── */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  --space-page-x: var(--space-6);
+  --space-page-y: var(--space-6);
+  --space-section: var(--space-5);
+  --space-card-padding: var(--space-8);
+  --space-form-gap: var(--space-4);
+  --space-inline-gap: var(--space-3);
+
+  /* ── 字号 Typography ── */
+  --font-family-base: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-family-mono: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 28px;
+  --font-size-3xl: 34px;
+  --font-size-4xl: 44px;
+  --font-size-display: 72px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.1;
+  --line-height-snug: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.04em;
+  --letter-spacing-wider: 0.08em;
+
+  /* ── 布局 Layout ── */
+  --layout-sidebar-width: 240px;
+  --layout-sidebar-collapsed-width: 64px;
+  --layout-header-height: 72px;
+  --layout-content-max-width: 1440px;
+  --layout-login-card-width: 420px;
+  --layout-auth-intro-max-width: 580px;
+
+  /* ── 层级 Z-Index ── */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal-backdrop: 1300;
+  --z-modal: 1400;
+  --z-popover: 1500;
+  --z-tooltip: 1600;
+  --z-toast: 1700;
+  --z-loading: 1800;
+
+  /* ── 动效 Motion ── */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --transition-fast: var(--duration-fast) var(--ease-out);
+  --transition-normal: var(--duration-normal) var(--ease-out);
+  --transition-slow: var(--duration-slow) var(--ease-in-out);
+  --transition-color: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+  --transition-transform: transform var(--transition-normal);
+  --transition-opacity: opacity var(--transition-normal);
+  --transition-shadow: box-shadow var(--transition-normal);
+
+  /* ── 特效 Effects ── */
+  --blur-sm: 4px;
+  --blur-md: 10px;
+  --blur-lg: 20px;
+  --backdrop-header: blur(var(--blur-md));
+
+  /* ── 图表 Chart（与 StatusTag / ECharts 对齐） ── */
+  --chart-color-primary: var(--color-primary);
+  --chart-color-success: var(--color-success);
+  --chart-color-info: var(--color-info);
+  --chart-color-warning: var(--color-warning);
+  --chart-color-error: var(--color-error);
+  --chart-color-series-1: #1f8f6a;
+  --chart-color-series-2: #2080f0;
+  --chart-color-series-3: #f0a020;
+  --chart-color-series-4: #d03050;
+  --chart-color-series-5: #8b5cf6;
+  --chart-color-series-6: #06b6d4;
+  --chart-grid-line: #e8f0eb;
+  --chart-axis-label: var(--color-text-muted);
+}
+
+/* 暗色模式预留（默认未启用，后续 PR 可接入 useTheme） */
+[data-theme='dark'] {
+  --color-text-primary: #e8f5ef;
+  --color-text-secondary: #a8c4b8;
+  --color-text-tertiary: #8aa89a;
+  --color-text-muted: #7a9488;
+  --color-text-quaternary: #6d877e;
+  --color-text-disabled: #4a6358;
+
+  --color-bg-base: #0f1a16;
+  --color-bg-elevated: #1a2b24;
+  --color-bg-subtle: #15231e;
+  --color-bg-muted: #1e3329;
+  --color-bg-accent: #1a2b24;
+  --color-bg-warm: #1a2520;
+  --color-bg-overlay: rgba(26, 43, 36, 0.92);
+  --color-bg-sidebar: #15231e;
+  --color-bg-header: var(--color-bg-overlay);
+
+  --color-border-default: #2a4036;
+  --color-border-subtle: #243830;
+  --color-border-strong: #3a5548;
+
+  --shadow-color: rgba(0, 0, 0, 0.25);
+  --shadow-color-strong: rgba(0, 0, 0, 0.4);
+}
