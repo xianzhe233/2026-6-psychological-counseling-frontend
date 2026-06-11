@@ -2,7 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
   NDataTable,
   NPopconfirm,
   NSpace,
@@ -14,6 +13,12 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FormField from '@/components/ui/FormField.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import PriorityBadge from '@/components/ui/PriorityBadge.vue'
+import SearchPanel from '@/components/ui/SearchPanel.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import {
   deferConsultationQueue,
   getConsultationProblemTypeOptions,
@@ -76,8 +81,8 @@ const columns: DataTableColumns<ConsultationQueueVO> = [
     render(row) {
       return h('div', { class: 'queue-cell' }, [
         h('div', { class: 'queue-cell__main' }, row.problemTypeName),
-        h(RiskTag, { value: row.crisisLevel }),
-        h('div', { class: 'queue-cell__sub' }, `优先级 ${row.priorityScore}`),
+        h(RiskTag, { value: row.crisisLevel, showIcon: ['HIGH', 'URGENT'].includes(row.crisisLevel) }),
+        h(PriorityBadge, { score: row.priorityScore, showBar: true }),
         h('div', { class: 'queue-cell__sub' }, row.enqueueTime),
       ])
     },
@@ -202,57 +207,67 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="consultation-queue-view">
+  <PageContainer class="consultation-queue-view bp-page">
     <PageHeader
       title="咨询队列"
       description="查看初访后需要进入正式咨询的学生，并完成正式咨询安排或暂缓处理。"
     />
 
-    <n-card title="搜索筛选">
-      <div class="search-panel">
-        <label class="search-field">
-          <span>关键词</span>
+    <SearchPanel :loading="loading" @search="handleSearch" @reset="handleReset">
+      <div class="bp-form-grid">
+        <FormField label="关键词">
           <input
             v-model="searchForm.keyword"
+            class="bp-form-control"
             type="text"
             placeholder="姓名 / 学号 / 院系 / 摘要"
             @keyup.enter="handleSearch"
           >
-        </label>
+        </FormField>
 
-        <label class="search-field">
-          <span>危机等级</span>
-          <select :value="searchForm.crisisLevel ?? ''" @change="handleCrisisLevelChange">
+        <FormField label="危机等级">
+          <select
+            class="bp-form-control"
+            :value="searchForm.crisisLevel ?? ''"
+            @change="handleCrisisLevelChange"
+          >
             <option value="">全部</option>
             <option v-for="option in crisisLevelOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
-        </label>
+        </FormField>
 
-        <label class="search-field">
-          <span>问题类型</span>
-          <select :value="searchForm.problemTypeId ?? ''" @change="handleProblemTypeChange">
+        <FormField label="问题类型">
+          <select
+            class="bp-form-control"
+            :value="searchForm.problemTypeId ?? ''"
+            @change="handleProblemTypeChange"
+          >
             <option value="">全部</option>
             <option v-for="option in problemTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
-        </label>
+        </FormField>
 
-        <label class="search-field">
-          <span>队列状态</span>
-          <select :value="searchForm.status ?? ''" @change="handleStatusChange">
+        <FormField label="队列状态">
+          <select
+            class="bp-form-control"
+            :value="searchForm.status ?? ''"
+            @change="handleStatusChange"
+          >
             <option value="">全部</option>
             <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
-        </label>
+        </FormField>
       </div>
+    </SearchPanel>
 
-      <div class="search-actions">
-        <n-button @click="handleReset">重置</n-button>
-        <n-button type="primary" @click="handleSearch">搜索</n-button>
-      </div>
-    </n-card>
-
-    <n-card title="队列列表" style="margin-top: 16px">
+    <SectionCard title="队列列表">
+      <EmptyState
+        v-if="!loading && data.length === 0"
+        title="暂无排队学生"
+        description="当前筛选条件下没有待安排或已暂缓的咨询队列记录"
+      />
       <n-data-table
+        v-else
         remote
         :loading="loading"
         :columns="columns"
@@ -265,52 +280,13 @@ onMounted(() => {
         @update:page="(page: number) => { pagination.page = page; fetchData() }"
         @update:page-size="(pageSize: number) => { pagination.pageSize = pageSize; pagination.page = 1; fetchData() }"
       />
-    </n-card>
-  </div>
+    </SectionCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.consultation-queue-view {
-  padding: 16px;
-}
-
 .consultation-queue-view :deep(.n-data-table) {
   width: 100%;
-}
-
-.search-panel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.search-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #334155;
-}
-
-.search-field span {
-  font-weight: 600;
-}
-
-.search-field input,
-.search-field select {
-  width: 100%;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
-  padding: 8px 11px;
-  color: #1f2937;
-  font: inherit;
-  background: #fff;
-}
-
-.search-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
 }
 
 .consultation-queue-view :deep(.queue-cell) {

@@ -2,7 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
   NDataTable,
   NInputNumber,
   NSpace,
@@ -12,6 +11,13 @@ import type { DataTableColumns } from 'naive-ui'
 
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FormField from '@/components/ui/FormField.vue'
+import FormSection from '@/components/ui/FormSection.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SearchPanel from '@/components/ui/SearchPanel.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import {
   createExtensionRequest,
   getCounselorStudentOptions,
@@ -162,55 +168,69 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="extension-request-view">
+  <PageContainer class="extension-request-view bp-page bp-section-gap">
     <PageHeader
       title="追加咨询申请"
       description="为仍需继续支持的学生提交追加咨询次数申请，并查看审核状态。"
     />
 
-    <n-card title="新增申请">
-      <div class="form-grid">
-        <label class="form-field">
-          <span>学生 <em>*</em></span>
-          <select v-model.number="form.studentId">
-            <option :value="null">请选择学生</option>
-            <option v-for="option in studentOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+    <SectionCard title="新增申请">
+      <FormSection title="申请信息">
+        <div class="bp-form-grid bp-form-grid--responsive">
+          <FormField label="学生" required>
+            <select v-model.number="form.studentId" class="bp-form-control">
+              <option :value="null">请选择学生</option>
+              <option v-for="option in studentOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </FormField>
 
-        <label class="form-field">
-          <span>追加次数 <em>*</em></span>
-          <n-input-number v-model:value="form.requestSessions" :min="1" :max="12" style="width: 100%" />
-        </label>
-      </div>
+          <FormField label="追加次数" required>
+            <n-input-number v-model:value="form.requestSessions" :min="1" :max="12" style="width: 100%" />
+          </FormField>
+        </div>
+      </FormSection>
 
-      <label class="form-field">
-        <span>申请原因 <em>*</em></span>
-        <textarea v-model="form.reason" rows="4" placeholder="请说明为什么需要追加咨询，至少 10 个字" />
-      </label>
+      <FormField label="申请原因" required hint="不少于 10 个字">
+        <textarea
+          v-model="form.reason"
+          class="bp-form-control"
+          rows="4"
+          placeholder="请说明为什么需要追加咨询，至少 10 个字"
+        />
+        <div class="bp-char-count">{{ form.reason.trim().length }} / 10 字起</div>
+      </FormField>
 
-      <div class="form-actions">
+      <ActionBar :sticky="false">
         <n-button @click="resetForm">重置</n-button>
         <n-button type="primary" :loading="submitting" @click="handleSubmit">提交申请</n-button>
-      </div>
-    </n-card>
+      </ActionBar>
+    </SectionCard>
 
-    <n-card title="申请记录" style="margin-top: 16px">
-      <div class="filter-row">
-        <label class="form-field form-field--inline">
-          <span>审核状态</span>
-          <select :value="searchForm.status ?? ''" @change="handleStatusChange">
+    <SectionCard title="申请记录">
+      <SearchPanel
+        title="筛选"
+        :show-search="false"
+        @reset="() => { searchForm.status = null; fetchData() }"
+      >
+        <FormField label="审核状态">
+          <select
+            class="bp-form-control"
+            :value="searchForm.status ?? ''"
+            @change="handleStatusChange"
+          >
             <option value="">全部</option>
             <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
-        </label>
+        </FormField>
+      </SearchPanel>
 
-        <n-space>
-          <n-button @click="() => { searchForm.status = null; fetchData() }">重置</n-button>
-        </n-space>
-      </div>
-
+      <EmptyState
+        v-if="!loading && data.length === 0"
+        title="暂无申请记录"
+        description="提交追加咨询申请后，可在此查看审核进度"
+      />
       <n-data-table
+        v-else
         remote
         :loading="loading"
         :columns="columns"
@@ -220,62 +240,11 @@ onMounted(() => {
         @update:page="page => { pagination.page = page; fetchData() }"
         @update:page-size="pageSize => { pagination.pageSize = pageSize; pagination.page = 1; fetchData() }"
       />
-    </n-card>
-  </div>
+    </SectionCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.extension-request-view {
-  padding: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-  color: #4b5563;
-  font-size: 14px;
-}
-
-.form-field em {
-  color: #ef4444;
-  font-style: normal;
-}
-
-.form-field select,
-.form-field textarea {
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-  font: inherit;
-}
-
-.form-field--inline {
-  width: 220px;
-  margin-bottom: 0;
-}
-
-.form-actions,
-.filter-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.filter-row {
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
 .request-cell {
   display: flex;
   flex-direction: column;

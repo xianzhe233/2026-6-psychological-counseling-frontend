@@ -2,8 +2,6 @@
 import dayjs from 'dayjs'
 import { h, onMounted, reactive, ref } from 'vue'
 import {
-  NButton,
-  NCard,
   NDataTable,
   NDatePicker,
   NForm,
@@ -12,13 +10,16 @@ import {
   NGi,
   NInput,
   NSelect,
-  NSpace,
   NTag,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
 import PageHeader from '@/components/common/PageHeader.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SearchPanel from '@/components/ui/SearchPanel.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import { getNotifyTypeLabel, pageNotificationLogs } from '@/api/logs'
 import type { NotificationLogQuery, NotificationLogVO } from '@/api/logs'
 
@@ -153,13 +154,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="notification-log-view">
+  <PageContainer class="notification-log-view bp-page bp-section-gap">
     <PageHeader
       title="通知日志"
       description="查看系统发送给学生的预约、咨询和结案相关通知记录，支持按类型、状态和时间筛选。"
     />
 
-    <n-card title="搜索筛选">
+    <SearchPanel :loading="loading" @search="handleSearch" @reset="handleReset">
       <n-form label-placement="top">
         <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
           <n-gi span="1 m:1">
@@ -207,17 +208,16 @@ onMounted(() => {
           </n-gi>
         </n-grid>
       </n-form>
+    </SearchPanel>
 
-      <div class="search-actions">
-        <n-space>
-          <n-button @click="handleReset">重置</n-button>
-          <n-button type="primary" @click="handleSearch">搜索</n-button>
-        </n-space>
-      </div>
-    </n-card>
-
-    <n-card title="通知记录" style="margin-top: 16px">
+    <SectionCard title="通知记录">
+      <EmptyState
+        v-if="!loading && data.length === 0"
+        title="暂无通知记录"
+        description="调整筛选条件后重试"
+      />
       <n-data-table
+        v-else
         remote
         :loading="loading"
         :columns="columns"
@@ -227,17 +227,6 @@ onMounted(() => {
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
       />
-    </n-card>
-  </div>
+    </SectionCard>
+  </PageContainer>
 </template>
-
-<style scoped>
-.notification-log-view {
-  padding: 16px;
-}
-
-.search-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-</style>

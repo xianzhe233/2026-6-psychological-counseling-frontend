@@ -2,7 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
   NDataTable,
   NInputNumber,
   NPopconfirm,
@@ -14,6 +13,14 @@ import { useRoute } from 'vue-router'
 
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FileDownloadButton from '@/components/ui/FileDownloadButton.vue'
+import FormField from '@/components/ui/FormField.vue'
+import FormSection from '@/components/ui/FormSection.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SearchPanel from '@/components/ui/SearchPanel.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import {
   downloadMyCaseReportWord,
   getCaseReport,
@@ -122,7 +129,12 @@ const columns: DataTableColumns<CaseReportVO> = [
               },
             )
             : null,
-          h(NButton, { size: 'small', onClick: () => handleDownload(row.id) }, { default: () => '下载 Word' }),
+          h(FileDownloadButton, {
+            size: 'small',
+            type: 'default',
+            text: '下载 Word',
+            onDownload: () => handleDownload(row.id),
+          }),
         ].filter(Boolean),
       })
     },
@@ -323,67 +335,64 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="case-report-edit-view">
+  <PageContainer class="case-report-edit-view bp-page bp-section-gap">
     <PageHeader
       title="结案报告"
       description="保存结案报告草稿，确认无误后提交，并触发 Word 报告下载。"
     />
 
-    <n-card :title="editingId ? '编辑结案报告' : '新增结案报告'">
-      <div class="form-grid">
-        <label class="form-field">
-          <span>学生 <em>*</em></span>
-          <select v-model.number="form.studentId">
-            <option :value="0">请选择学生</option>
-            <option v-for="option in studentOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+    <SectionCard :title="editingId ? '编辑结案报告' : '新增结案报告'">
+      <FormSection title="基本信息">
+        <div class="bp-form-grid bp-form-grid--responsive">
+          <FormField label="学生" required>
+            <select v-model.number="form.studentId" class="bp-form-control">
+              <option :value="0">请选择学生</option>
+              <option v-for="option in studentOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </FormField>
 
-        <label class="form-field">
-          <span>问题类型 <em>*</em></span>
-          <select v-model.number="form.problemTypeId">
-            <option :value="0">请选择问题类型</option>
-            <option v-for="option in problemTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+          <FormField label="问题类型" required>
+            <select v-model.number="form.problemTypeId" class="bp-form-control">
+              <option :value="0">请选择问题类型</option>
+              <option v-for="option in problemTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </FormField>
 
-        <label class="form-field">
-          <span>咨询总次数 <em>*</em></span>
-          <n-input-number v-model:value="form.totalSessions" :min="1" :max="99" style="width: 100%" />
-        </label>
+          <FormField label="咨询总次数" required>
+            <n-input-number v-model:value="form.totalSessions" :min="1" :max="99" style="width: 100%" />
+          </FormField>
 
-        <label class="form-field">
-          <span>咨询效果自评 <em>*</em></span>
-          <select v-model="form.effectSelfRating">
-            <option value="">请选择效果自评</option>
-            <option v-for="option in effectOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
+          <FormField label="咨询效果自评" required>
+            <select v-model="form.effectSelfRating" class="bp-form-control">
+              <option value="">请选择效果自评</option>
+              <option v-for="option in effectOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </FormField>
 
-        <label class="form-field">
-          <span>结案类型 <em>*</em></span>
-          <select v-model="form.closeType">
-            <option v-for="option in closeTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-      </div>
+          <FormField label="结案类型" required>
+            <select v-model="form.closeType" class="bp-form-control">
+              <option v-for="option in closeTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </FormField>
+        </div>
+      </FormSection>
 
-      <label class="form-field">
-        <span>个案总结</span>
-        <textarea v-model="form.caseSummary" rows="5" placeholder="提交报告前建议不少于 20 字" />
-      </label>
+      <FormSection title="报告内容">
+        <FormField label="个案总结" hint="提交报告前建议不少于 20 字">
+          <textarea v-model="form.caseSummary" class="bp-form-control" rows="5" placeholder="提交报告前建议不少于 20 字" />
+          <div class="bp-char-count">{{ form.caseSummary.length }} 字</div>
+        </FormField>
 
-      <label class="form-field">
-        <span>咨询效果</span>
-        <textarea v-model="form.counselingEffect" rows="4" placeholder="填写咨询过程中的变化和效果" />
-      </label>
+        <FormField label="咨询效果">
+          <textarea v-model="form.counselingEffect" class="bp-form-control" rows="4" placeholder="填写咨询过程中的变化和效果" />
+        </FormField>
 
-      <label class="form-field">
-        <span>后续建议</span>
-        <textarea v-model="form.suggestion" rows="4" placeholder="填写后续建议、转介建议或自助练习建议" />
-      </label>
+        <FormField label="后续建议">
+          <textarea v-model="form.suggestion" class="bp-form-control" rows="4" placeholder="填写后续建议、转介建议或自助练习建议" />
+        </FormField>
+      </FormSection>
 
-      <div class="form-actions">
+      <ActionBar :sticky="false">
         <n-button @click="resetForm">新建/重置</n-button>
         <n-button :loading="submitting" @click="persistReport">保存草稿</n-button>
         <n-popconfirm @positive-click="handleSubmitCurrentForm">
@@ -392,31 +401,42 @@ onMounted(() => {
           </template>
           提交后管理员可查看和下载，确定提交该结案报告吗？
         </n-popconfirm>
-      </div>
-    </n-card>
+      </ActionBar>
+    </SectionCard>
 
-    <n-card title="我的结案报告" style="margin-top: 16px">
-      <div class="search-panel">
-        <label class="form-field">
-          <span>学生关键词</span>
-          <input v-model="searchForm.studentKeyword" type="text" placeholder="姓名 / 学号 / 问题类型" @keyup.enter="handleSearch">
-        </label>
+    <SectionCard title="我的结案报告">
+      <SearchPanel :loading="loading" @search="handleSearch" @reset="() => { searchForm.studentKeyword = ''; searchForm.status = null; handleSearch() }">
+        <div class="bp-form-grid bp-form-grid--responsive">
+          <FormField label="学生关键词">
+            <input
+              v-model="searchForm.studentKeyword"
+              class="bp-form-control"
+              type="text"
+              placeholder="姓名 / 学号 / 问题类型"
+              @keyup.enter="handleSearch"
+            >
+          </FormField>
 
-        <label class="form-field">
-          <span>报告状态</span>
-          <select :value="searchForm.status ?? ''" @change="handleStatusChange">
-            <option value="">全部</option>
-            <option v-for="option in reportStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-      </div>
+          <FormField label="报告状态">
+            <select
+              class="bp-form-control"
+              :value="searchForm.status ?? ''"
+              @change="handleStatusChange"
+            >
+              <option value="">全部</option>
+              <option v-for="option in reportStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </FormField>
+        </div>
+      </SearchPanel>
 
-      <div class="search-actions">
-        <n-button @click="() => { searchForm.studentKeyword = ''; searchForm.status = null; handleSearch() }">重置</n-button>
-        <n-button type="primary" @click="handleSearch">搜索</n-button>
-      </div>
-
+      <EmptyState
+        v-if="!loading && data.length === 0"
+        title="暂无结案报告"
+        description="保存草稿或提交报告后，将在此显示记录"
+      />
       <n-data-table
+        v-else
         remote
         :loading="loading"
         :columns="columns"
@@ -426,58 +446,11 @@ onMounted(() => {
         @update:page="page => { pagination.page = page; fetchData() }"
         @update:page-size="pageSize => { pagination.pageSize = pageSize; pagination.page = 1; fetchData() }"
       />
-    </n-card>
-  </div>
+    </SectionCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.case-report-edit-view {
-  padding: 16px;
-}
-
-.form-grid,
-.search-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-  color: #4b5563;
-  font-size: 14px;
-}
-
-.form-field em {
-  color: #ef4444;
-  font-style: normal;
-}
-
-.form-field input,
-.form-field select,
-.form-field textarea {
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-  font: inherit;
-}
-
-.form-actions,
-.search-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.search-actions {
-  margin-bottom: 16px;
-}
-
 .report-cell {
   display: flex;
   flex-direction: column;
