@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue'
-import { NButton, NCard, NDataTable, NSpace, useMessage } from 'naive-ui'
+import { NButton, NDataTable, NSpace, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
+import dayjs from 'dayjs'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FormField from '@/components/ui/FormField.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SearchPanel from '@/components/ui/SearchPanel.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import { pageMySchedules } from '@/api/counselor'
 import type { CounselorScheduleVO, ScheduleStatus } from '@/api/counselor'
 
@@ -73,7 +79,7 @@ const columns: DataTableColumns<CounselorScheduleVO> = [
       return h(NSpace, { size: 6, vertical: true }, {
         default: () => [
           h('span', row.problemTypeLabel),
-          h(RiskTag, { value: row.crisisLevel }),
+          h(RiskTag, { value: row.crisisLevel, showIcon: ['HIGH', 'URGENT'].includes(row.crisisLevel) }),
         ],
       })
     },
@@ -150,101 +156,88 @@ function handleReport(row: CounselorScheduleVO) {
   router.push({ path: '/counselor/case-reports', query: { studentId: row.studentId } })
 }
 
+function rowClassName(row: CounselorScheduleVO) {
+  return row.consultationDate === dayjs().format('YYYY-MM-DD') ? 'today-schedule-row' : ''
+}
+
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <div class="my-schedule-view">
+  <PageContainer class="my-schedule-view bp-page">
     <PageHeader
       title="我的咨询日程"
       description="查看正式咨询安排，按日期范围、状态和学生关键词筛选，并录入咨询记录。"
     />
 
-    <n-card title="搜索筛选">
-      <div class="search-panel">
-        <label class="search-field">
-          <span>日期范围</span>
+    <SearchPanel :loading="loading" @search="handleSearch" @reset="handleReset">
+      <div class="bp-form-grid bp-form-grid--responsive">
+        <FormField label="日期范围">
           <div class="date-range">
-            <input v-model="searchForm.startDate" type="date" @change="handleSearch">
-            <span>至</span>
-            <input v-model="searchForm.endDate" type="date" @change="handleSearch">
+            <input v-model="searchForm.startDate" class="bp-form-control" type="date" @change="handleSearch">
+            <span class="date-range__sep">至</span>
+            <input v-model="searchForm.endDate" class="bp-form-control" type="date" @change="handleSearch">
           </div>
-        </label>
+        </FormField>
 
-        <label class="search-field">
-          <span>状态</span>
-          <select :value="searchForm.status ?? ''" @change="handleStatusChange">
+        <FormField label="状态">
+          <select
+            class="bp-form-control"
+            :value="searchForm.status ?? ''"
+            @change="handleStatusChange"
+          >
             <option value="">全部</option>
             <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
-        </label>
+        </FormField>
 
-        <label class="search-field">
-          <span>学生关键词</span>
+        <FormField label="学生关键词">
           <input
             v-model="searchForm.studentKeyword"
+            class="bp-form-control"
             type="text"
             placeholder="姓名 / 学号 / 院系"
             @keyup.enter="handleSearch"
           >
-        </label>
+        </FormField>
       </div>
+    </SearchPanel>
 
-      <div class="search-actions">
-        <n-button @click="handleReset">重置</n-button>
-        <n-button type="primary" @click="handleSearch">搜索</n-button>
-      </div>
-    </n-card>
-
-    <n-card title="日程列表" style="margin-top: 16px">
+    <SectionCard title="日程列表">
+      <EmptyState
+        v-if="!loading && data.length === 0"
+        title="暂无咨询日程"
+        description="调整日期范围或状态筛选后重试"
+      />
       <n-data-table
+        v-else
         remote
         :loading="loading"
         :columns="columns"
         :data="data"
         :pagination="pagination"
+        :row-class-name="rowClassName"
         :row-key="row => row.id"
         @update:page="page => { pagination.page = page; fetchData() }"
         @update:page-size="pageSize => { pagination.pageSize = pageSize; pagination.page = 1; fetchData() }"
       />
-    </n-card>
-  </div>
+    </SectionCard>
+  </PageContainer>
 </template>
 
 <style scoped>
-.my-schedule-view {
-  padding: 16px;
-}
-
-.search-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.search-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #4b5563;
-  font-size: 14px;
-}
-
-.search-field input,
-.search-field select {
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-}
-
 .date-range {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
+}
+
+.date-range__sep {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
 }
 
 .date-range input {
@@ -252,11 +245,8 @@ onMounted(() => {
   flex: 1;
 }
 
-.search-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
+:deep(.today-schedule-row td) {
+  background: var(--color-primary-subtle);
 }
 
 .schedule-cell {

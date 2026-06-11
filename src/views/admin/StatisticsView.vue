@@ -6,21 +6,25 @@ import { init, use, type ECharts } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
-  NButton,
-  NCard,
   NDatePicker,
-  NEmpty,
-  NForm,
-  NFormItem,
   NGi,
   NGrid,
-  NSelect,
-  NSpace,
-  NStatistic,
   useMessage,
 } from 'naive-ui'
+import {
+  AnalyticsOutline,
+  PeopleOutline,
+  DocumentTextOutline,
+  PersonOutline,
+} from '@vicons/ionicons5'
 
 import PageHeader from '@/components/common/PageHeader.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SearchPanel from '@/components/ui/SearchPanel.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
+import StatCard from '@/components/ui/StatCard.vue'
+import { echartsColors, echartsTheme } from '@/utils/chart-theme'
 import {
   getConsultationDistribution,
   getConsultationTrend,
@@ -40,7 +44,6 @@ const consultationTrend = ref<ChartVO | null>(null)
 const problemTypes = ref<PieItemVO[]>([])
 const consultationDist = ref<PieItemVO[]>([])
 const workloadChart = ref<ChartVO | null>(null)
-const workloadTable = ref<CounselorWorkloadVO[]>([])
 
 function getDefaultDateRange(): [number, number] {
   return [
@@ -71,10 +74,10 @@ const hasWorkloadData = computed(() => !!workloadChart.value && workloadChart.va
 const overviewCards = computed(() => {
   const data = overview.value
   return [
-    { label: '咨询总次数', value: data?.totalConsultations ?? 0 },
-    { label: '咨询学生总数', value: data?.totalStudents ?? 0 },
-    { label: '结案报告数', value: data?.completedReports ?? 0 },
-    { label: '活跃咨询师数', value: data?.activeCounselors ?? 0 },
+    { label: '咨询总次数', value: data?.totalConsultations ?? 0, icon: AnalyticsOutline },
+    { label: '咨询学生总数', value: data?.totalStudents ?? 0, icon: PeopleOutline },
+    { label: '结案报告数', value: data?.completedReports ?? 0, icon: DocumentTextOutline },
+    { label: '活跃咨询师数', value: data?.activeCounselors ?? 0, icon: PersonOutline },
   ]
 })
 
@@ -120,10 +123,11 @@ function renderTrendChart() {
   }
 
   chart.setOption({
-    color: ['#18A058', '#2080F0'],
+    color: echartsColors,
+    textStyle: echartsTheme.textStyle,
     tooltip: { trigger: 'axis' },
-    legend: { bottom: 0 },
-    grid: { left: 40, right: 24, top: 24, bottom: 48 },
+    legend: { bottom: 0, textStyle: echartsTheme.legend.textStyle },
+    grid: echartsTheme.grid,
     xAxis: { type: 'category', data: consultationTrend.value.xAxis },
     yAxis: { type: 'value', minInterval: 1 },
     series: consultationTrend.value.series.map(item => ({
@@ -144,9 +148,10 @@ function renderPieChart() {
   }
 
   chart.setOption({
-    color: ['#18A058', '#2080F0', '#F0A020', '#D03050', '#8A2BE2', '#36CFC9'],
+    color: echartsColors,
+    textStyle: echartsTheme.textStyle,
     tooltip: { trigger: 'item' },
-    legend: { bottom: 0, type: 'scroll' },
+    legend: { bottom: 0, type: 'scroll', textStyle: echartsTheme.legend.textStyle },
     series: [{
       name: '问题类型',
       type: 'pie',
@@ -167,9 +172,10 @@ function renderDistChart() {
   }
 
   chart.setOption({
-    color: ['#18A058', '#2080F0', '#F0A020', '#D03050', '#8A2BE2', '#36CFC9'],
+    color: echartsColors,
+    textStyle: echartsTheme.textStyle,
     tooltip: { trigger: 'item' },
-    legend: { bottom: 0, type: 'scroll' },
+    legend: { bottom: 0, type: 'scroll', textStyle: echartsTheme.legend.textStyle },
     series: [{
       name: '学院分布',
       type: 'pie',
@@ -190,11 +196,12 @@ function renderWorkloadChart() {
   }
 
   chart.setOption({
-    color: ['#18A058', '#2080F0', '#F0A020'],
-    title: { text: '咨询师工作量', left: 'center', textStyle: { fontSize: 14, fontWeight: 500 } },
+    color: echartsColors,
+    textStyle: echartsTheme.textStyle,
+    title: { text: '咨询师工作量', left: 'center', textStyle: echartsTheme.title.textStyle },
     tooltip: { trigger: 'axis' },
-    legend: { bottom: 0 },
-    grid: { left: 40, right: 24, top: 40, bottom: 48 },
+    legend: { bottom: 0, textStyle: echartsTheme.legend.textStyle },
+    grid: { ...echartsTheme.grid, top: 40 },
     xAxis: { type: 'category', data: workloadChart.value.xAxis },
     yAxis: { type: 'value', minInterval: 1 },
     series: workloadChart.value.series.map(item => ({
@@ -271,92 +278,85 @@ watch([consultationTrend, problemTypes, consultationDist, workloadChart, hasTren
 </script>
 
 <template>
-  <div class="statistics-view">
+  <PageContainer class="statistics-view bp-page bp-section-gap">
     <PageHeader
       title="统计看板"
       description="查看咨询安排、问题类型分布、咨询师工作量等核心指标，支持按日期范围筛选。"
     />
 
-    <n-card title="筛选条件">
-      <n-form label-placement="top">
-        <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
-          <n-gi span="1 m:2">
-            <n-form-item label="日期范围">
-              <n-date-picker
-                v-model:value="searchForm.dateRange"
-                type="daterange"
-                clearable
-                style="width: 100%"
-              />
-            </n-form-item>
-          </n-gi>
-        </n-grid>
-      </n-form>
+    <SearchPanel
+      title="筛选条件"
+      search-text="刷新统计"
+      :loading="loading"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
+      <label class="statistics-date-field">
+        <span>日期范围</span>
+        <n-date-picker
+          v-model:value="searchForm.dateRange"
+          type="daterange"
+          clearable
+          style="width: 100%"
+        />
+      </label>
+    </SearchPanel>
 
-      <div class="search-actions">
-        <n-space>
-          <n-button @click="handleReset">重置</n-button>
-          <n-button type="primary" :loading="loading" @click="handleSearch">刷新统计</n-button>
-        </n-space>
-      </div>
-    </n-card>
-
-    <n-grid :cols="1" :x-gap="16" :y-gap="16" responsive="screen" item-responsive style="margin-top: 16px">
+    <n-grid :cols="1" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
       <n-gi v-for="card in overviewCards" :key="card.label" span="1 s:1 m:2 l:2 xl:1">
-        <n-card>
-          <n-statistic :label="card.label" :value="card.value" />
-        </n-card>
+        <StatCard :label="card.label" :value="card.value" :icon="card.icon" />
       </n-gi>
     </n-grid>
 
-    <n-grid :cols="1" :x-gap="16" :y-gap="16" responsive="screen" item-responsive style="margin-top: 16px">
+    <n-grid :cols="1" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
       <n-gi span="1 xl:1">
-        <n-card title="咨询趋势">
+        <SectionCard title="咨询趋势">
           <div class="chart-panel">
             <div v-show="hasTrendData" ref="trendChartRef" class="chart-box" />
-            <n-empty v-if="!hasTrendData" description="暂无趋势数据" class="chart-empty" />
+            <EmptyState v-if="!hasTrendData" title="暂无趋势数据" description="调整日期范围后刷新统计" />
           </div>
-        </n-card>
+        </SectionCard>
       </n-gi>
 
       <n-gi span="1 xl:1">
-        <n-card title="问题类型分布">
+        <SectionCard title="问题类型分布">
           <div class="chart-panel">
             <div v-show="hasProblemTypeData" ref="pieChartRef" class="chart-box" />
-            <n-empty v-if="!hasProblemTypeData" description="暂无分布数据" class="chart-empty" />
+            <EmptyState v-if="!hasProblemTypeData" title="暂无分布数据" description="当前时间范围内没有咨询记录" />
           </div>
-        </n-card>
+        </SectionCard>
       </n-gi>
 
       <n-gi span="1 xl:1">
-        <n-card title="学院分布">
+        <SectionCard title="学院分布">
           <div class="chart-panel">
             <div v-show="hasDistData" ref="distChartRef" class="chart-box" />
-            <n-empty v-if="!hasDistData" description="暂无学院分布数据" class="chart-empty" />
+            <EmptyState v-if="!hasDistData" title="暂无学院分布" description="当前时间范围内没有学院维度数据" />
           </div>
-        </n-card>
+        </SectionCard>
       </n-gi>
 
       <n-gi span="1 xl:1">
-        <n-card title="咨询师工作量">
+        <SectionCard title="咨询师工作量">
           <div class="chart-panel">
             <div v-show="hasWorkloadData" ref="workloadChartRef" class="chart-box" />
-            <n-empty v-if="!hasWorkloadData" description="暂无工作量数据" class="chart-empty" />
+            <EmptyState v-if="!hasWorkloadData" title="暂无工作量数据" description="当前时间范围内没有咨询师排班记录" />
           </div>
-        </n-card>
+        </SectionCard>
       </n-gi>
     </n-grid>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>
-.statistics-view {
-  padding: 16px;
-}
-
-.search-actions {
+.statistics-date-field {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 420px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .chart-panel {
@@ -368,10 +368,7 @@ watch([consultationTrend, problemTypes, consultationDist, workloadChart, hasTren
   height: 340px;
 }
 
-.chart-empty {
-  display: flex;
-  min-height: 340px;
-  align-items: center;
-  justify-content: center;
+.chart-panel :deep(.ui-empty-state) {
+  min-height: 280px;
 }
 </style>

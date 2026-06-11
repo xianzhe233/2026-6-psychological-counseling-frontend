@@ -2,18 +2,25 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
-  NCard,
-  NDescriptions,
-  NDescriptionsItem,
-  NEmpty,
   NSpin,
   useMessage,
 } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 
+import ArrangementPreviewCard from '@/components/assistant/ArrangementPreviewCard.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import ConflictAlert from '@/components/ui/ConflictAlert.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FormField from '@/components/ui/FormField.vue'
+import FormSection from '@/components/ui/FormSection.vue'
+import InfoDescriptions from '@/components/ui/InfoDescriptions.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import PriorityBadge from '@/components/ui/PriorityBadge.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
+import { extractApiErrorMessage } from '@/utils/api-error'
 import {
   arrangeFormalConsultation,
   getConsultationArrangeDetail,
@@ -178,7 +185,7 @@ async function handleSubmit() {
     message.success('正式咨询安排已生成')
     router.push('/assistant/queue')
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '提交咨询安排失败'
+    const errorMessage = extractApiErrorMessage(error, '提交咨询安排失败')
     submitError.value = errorMessage
     message.error(errorMessage)
   } finally {
@@ -202,7 +209,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="consultation-arrange-view">
+  <PageContainer class="consultation-arrange-view bp-page bp-section-gap">
     <PageHeader
       title="正式咨询安排"
       description="根据初访结果为学生安排单次正式咨询。"
@@ -210,226 +217,133 @@ onMounted(async () => {
       <n-button @click="handleBack">返回队列</n-button>
     </PageHeader>
 
-    <n-card title="选择队列记录" style="margin-bottom: 16px">
-      <label class="form-field">
-        <span>待安排学生</span>
-        <select :value="selectedQueueId ?? 0" @change="handleQueueChange">
+    <SectionCard title="选择队列记录">
+      <FormField label="待安排学生">
+        <select
+          class="bp-form-control"
+          :value="selectedQueueId ?? 0"
+          @change="handleQueueChange"
+        >
           <option :value="0">请先选择队列记录</option>
           <option v-for="option in queueOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
-      </label>
-    </n-card>
+      </FormField>
+    </SectionCard>
 
-    <n-empty v-if="!queueId" description="请从上方选择需要安排的队列记录，或从咨询队列页点击“安排咨询”进入">
-      <template #extra>
-        <n-button type="primary" @click="handleBack">前往咨询队列</n-button>
-      </template>
-    </n-empty>
+    <EmptyState
+      v-if="!queueId"
+      title="请选择队列记录"
+      description="请从上方选择需要安排的队列记录，或从咨询队列页点击「安排」进入"
+      action-text="前往咨询队列"
+      @action="handleBack"
+    />
 
     <n-spin v-else :show="loading">
-      <n-empty v-if="!detail && !loading" description="队列记录不存在或已失效" />
+      <EmptyState
+        v-if="!detail && !loading"
+        title="记录不可用"
+        description="队列记录不存在或已失效，请返回队列重新选择"
+      />
 
-      <template v-else-if="detail">
-        <n-card title="学生与队列信息">
-          <n-descriptions bordered label-placement="left" :column="2">
-            <n-descriptions-item label="学生姓名">{{ detail.studentName }}</n-descriptions-item>
-            <n-descriptions-item label="学号">{{ detail.studentNo }}</n-descriptions-item>
-            <n-descriptions-item label="院系">{{ detail.college || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="联系电话">{{ detail.phone || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="问题类型">{{ detail.problemTypeName }}</n-descriptions-item>
-            <n-descriptions-item label="危机等级"><RiskTag :value="detail.crisisLevel" /></n-descriptions-item>
-            <n-descriptions-item label="优先级分数">{{ detail.priorityScore }}</n-descriptions-item>
-            <n-descriptions-item label="队列状态"><StatusTag :value="detail.queueStatus" type="queue" /></n-descriptions-item>
-          </n-descriptions>
-        </n-card>
+      <div v-else-if="detail" class="bp-section-gap">
+        <SectionCard title="学生与队列信息">
+          <InfoDescriptions
+            :items="[
+              { label: '学生姓名', value: detail.studentName },
+              { label: '学号', value: detail.studentNo },
+              { label: '院系', value: detail.college || '—' },
+              { label: '联系电话', value: detail.phone || '—' },
+              { label: '问题类型', value: detail.problemTypeName },
+              { label: '危机等级', value: detail.crisisLevel },
+              { label: '优先级', value: String(detail.priorityScore) },
+              { label: '队列状态', value: detail.queueStatus },
+            ]"
+          >
+            <template #value-5>
+              <RiskTag :value="detail.crisisLevel" show-icon />
+            </template>
+            <template #value-6>
+              <PriorityBadge :score="detail.priorityScore" show-bar />
+            </template>
+            <template #value-7>
+              <StatusTag :value="detail.queueStatus" type="queue" />
+            </template>
+          </InfoDescriptions>
+        </SectionCard>
 
-        <n-card title="初访摘要" style="margin-top: 16px">
-          <n-descriptions bordered label-placement="left" :column="2">
-            <n-descriptions-item label="初访时间">{{ detail.interviewTime }}</n-descriptions-item>
-            <n-descriptions-item label="初访员">{{ detail.interviewerName || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="主要困扰">{{ detail.mainProblem }}</n-descriptions-item>
-            <n-descriptions-item label="期望帮助">{{ detail.expectedHelp || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="问题描述" :span="2">{{ detail.problemDescription || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="初访摘要" :span="2">{{ detail.summary || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="后续建议" :span="2">{{ detail.nextAction || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="风险分">{{ detail.riskScore }}</n-descriptions-item>
-            <n-descriptions-item label="风险等级">
-              <RiskTag :value="detail.riskLevel" />
-            </n-descriptions-item>
-          </n-descriptions>
-        </n-card>
+        <SectionCard title="初访摘要">
+          <InfoDescriptions
+            :items="[
+              { label: '初访时间', value: detail.interviewTime },
+              { label: '初访员', value: detail.interviewerName || '—' },
+              { label: '主要困扰', value: detail.mainProblem },
+              { label: '期望帮助', value: detail.expectedHelp || '—' },
+              { label: '问题描述', value: detail.problemDescription || '—', span: 2 },
+              { label: '初访摘要', value: detail.summary || '—', span: 2 },
+              { label: '后续建议', value: detail.nextAction || '—', span: 2 },
+              { label: '风险分', value: String(detail.riskScore) },
+              { label: '风险等级', value: detail.riskLevel },
+            ]"
+          >
+            <template #value-9>
+              <RiskTag :value="detail.riskLevel" show-icon />
+            </template>
+          </InfoDescriptions>
+        </SectionCard>
 
-      </template>
+        <SectionCard title="安排表单">
+          <FormSection title="时间与地点">
+            <div class="bp-form-grid">
+              <FormField label="咨询师" required>
+                <select v-model.number="form.counselorId" class="bp-form-control">
+                  <option :value="0">请选择咨询师</option>
+                  <option v-for="option in counselorOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </FormField>
+
+              <FormField label="咨询日期" required>
+                <input v-model="form.consultationDate" class="bp-form-control" type="date">
+              </FormField>
+
+              <FormField label="时间段" required>
+                <select v-model.number="form.slotId" class="bp-form-control">
+                  <option :value="0">请选择时间段</option>
+                  <option v-for="option in timeSlotOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </FormField>
+
+              <FormField label="咨询室" required>
+                <select v-model.number="form.roomId" class="bp-form-control">
+                  <option :value="0">请选择咨询室</option>
+                  <option v-for="option in roomOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </FormField>
+            </div>
+          </FormSection>
+
+          <FormField label="备注" hint="可填写给咨询师的补充说明">
+            <textarea
+              v-model="form.remark"
+              class="bp-form-control"
+              rows="3"
+              placeholder="例如：学生希望优先安排女性咨询师"
+            />
+          </FormField>
+
+          <ArrangementPreviewCard :preview="arrangePreview" />
+
+          <ConflictAlert
+            :message="submitError"
+            type="error"
+            title="安排失败"
+          />
+
+          <ActionBar :sticky="false">
+            <n-button @click="handleBack">取消</n-button>
+            <n-button type="primary" :loading="submitting" @click="handleSubmit">提交安排</n-button>
+          </ActionBar>
+        </SectionCard>
+      </div>
     </n-spin>
-
-    <section v-if="detail" class="arrange-card">
-      <h2>安排表单</h2>
-
-      <div class="form-grid">
-        <label class="form-field">
-          <span>咨询师 <em>*</em></span>
-          <select v-model.number="form.counselorId">
-            <option :value="0">请选择咨询师</option>
-            <option v-for="option in counselorOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-
-        <label class="form-field">
-          <span>咨询日期 <em>*</em></span>
-          <input v-model="form.consultationDate" type="date">
-        </label>
-
-        <label class="form-field">
-          <span>时间段 <em>*</em></span>
-          <select v-model.number="form.slotId">
-            <option :value="0">请选择时间段</option>
-            <option v-for="option in timeSlotOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-
-        <label class="form-field">
-          <span>咨询室 <em>*</em></span>
-          <select v-model.number="form.roomId">
-            <option :value="0">请选择咨询室</option>
-            <option v-for="option in roomOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-      </div>
-
-      <label class="form-field form-field--full">
-        <span>备注</span>
-        <textarea v-model="form.remark" rows="3" placeholder="可填写给咨询师的补充说明" />
-      </label>
-
-      <div class="preview-block">
-        <span>安排预览</span>
-        <div class="arrange-preview">
-          {{ arrangePreview || '请选择咨询师、日期、时间段和咨询室后生成预览' }}
-        </div>
-      </div>
-
-      <div v-if="submitError" class="submit-error">{{ submitError }}</div>
-
-      <div class="form-actions">
-        <button class="primary-button" type="button" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '提交中...' : '提交安排' }}
-        </button>
-        <button class="secondary-button" type="button" @click="handleBack">取消</button>
-      </div>
-    </section>
-  </div>
+  </PageContainer>
 </template>
-
-<style scoped>
-.consultation-arrange-view {
-  padding: 16px;
-}
-
-.arrange-card {
-  margin-top: 16px;
-  padding: 24px 28px;
-  border-radius: 16px;
-  background: #fff;
-}
-
-.arrange-card h2 {
-  margin: 0 0 20px;
-  font-size: 20px;
-  color: #1f2937;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #4b5563;
-}
-
-.form-field em {
-  color: #d03050;
-  font-style: normal;
-}
-
-.form-field select,
-.form-field input,
-.form-field textarea {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  padding: 8px 11px;
-  color: #1f2937;
-  font: inherit;
-  background: #fff;
-}
-
-.form-field textarea {
-  resize: vertical;
-}
-
-.form-field--full {
-  margin-top: 16px;
-}
-
-.preview-block {
-  margin-top: 16px;
-  color: #4b5563;
-}
-
-.arrange-preview {
-  width: 100%;
-  min-height: 38px;
-  box-sizing: border-box;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: #f7f9fc;
-  color: #334155;
-}
-
-.submit-error {
-  margin-top: 12px;
-  border: 1px solid #f5c2c7;
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: #fff5f5;
-  color: #c03221;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.primary-button,
-.secondary-button {
-  border: 0;
-  border-radius: 8px;
-  padding: 9px 18px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.primary-button {
-  background: #18a058;
-  color: #fff;
-}
-
-.primary-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.secondary-button {
-  border: 1px solid #dcdfe6;
-  background: #fff;
-  color: #374151;
-}
-</style>

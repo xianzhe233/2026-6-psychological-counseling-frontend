@@ -2,18 +2,19 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
-  NDescriptions,
-  NDescriptionsItem,
-  NEmpty,
   NSpin,
   useMessage,
 } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 
+import ScheduleInfoCard from '@/components/counselor/ScheduleInfoCard.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import RiskTag from '@/components/common/RiskTag.vue'
-import StatusTag from '@/components/common/StatusTag.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FormField from '@/components/ui/FormField.vue'
+import FormSection from '@/components/ui/FormSection.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import {
   getRecordBySchedule,
   getScheduleDetail,
@@ -130,7 +131,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="record-edit-view">
+  <PageContainer class="record-edit-view bp-page bp-section-gap">
     <PageHeader
       title="咨询记录录入"
       description="录入本次正式咨询状态、咨询时间、摘要和后续计划。"
@@ -139,61 +140,56 @@ onMounted(() => {
     </PageHeader>
 
     <n-spin :show="loading">
-      <n-empty v-if="!schedule && !loading" description="未找到咨询日程" />
+      <EmptyState
+        v-if="!schedule && !loading"
+        title="未找到咨询日程"
+        description="请从「我的咨询日程」重新选择有效的日程记录"
+        action-text="返回日程"
+        @action="handleBack"
+      />
 
-      <template v-else-if="schedule">
-        <n-card title="日程信息">
-          <n-descriptions bordered label-placement="left" :column="2">
-            <n-descriptions-item label="咨询编号">{{ schedule.scheduleNo }}</n-descriptions-item>
-            <n-descriptions-item label="状态"><StatusTag :value="schedule.status" type="schedule" /></n-descriptions-item>
-            <n-descriptions-item label="咨询日期">{{ schedule.consultationDate }}</n-descriptions-item>
-            <n-descriptions-item label="时间段">{{ schedule.slotName }} {{ schedule.startTime }}-{{ schedule.endTime }}</n-descriptions-item>
-            <n-descriptions-item label="地点">{{ schedule.roomName }}</n-descriptions-item>
-            <n-descriptions-item label="第几次">第 {{ schedule.sessionIndex }} 次</n-descriptions-item>
-          </n-descriptions>
-        </n-card>
+      <div v-else-if="schedule" class="bp-section-gap">
+        <ScheduleInfoCard :schedule="schedule" mode="schedule" />
+        <ScheduleInfoCard :schedule="schedule" mode="student" />
 
-        <n-card title="学生信息" style="margin-top: 16px">
-          <n-descriptions bordered label-placement="left" :column="2">
-            <n-descriptions-item label="姓名">{{ schedule.studentName }}</n-descriptions-item>
-            <n-descriptions-item label="学号">{{ schedule.studentNo }}</n-descriptions-item>
-            <n-descriptions-item label="院系">{{ schedule.college }}</n-descriptions-item>
-            <n-descriptions-item label="联系电话">{{ schedule.phone }}</n-descriptions-item>
-            <n-descriptions-item label="问题类型">{{ schedule.problemTypeLabel }}</n-descriptions-item>
-            <n-descriptions-item label="危机等级"><RiskTag :value="schedule.crisisLevel" /></n-descriptions-item>
-            <n-descriptions-item label="初访摘要" :span="2">{{ schedule.firstVisitSummary }}</n-descriptions-item>
-            <n-descriptions-item label="后续建议" :span="2">{{ schedule.nextAction || '-' }}</n-descriptions-item>
-          </n-descriptions>
-        </n-card>
+        <SectionCard title="咨询记录表单">
+          <FormSection title="本次咨询">
+            <div class="bp-form-grid bp-form-grid--responsive">
+              <FormField label="咨询状态" required>
+                <select v-model="form.recordStatus" class="bp-form-control">
+                  <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </FormField>
 
-        <n-card title="咨询记录表单" style="margin-top: 16px">
-          <div class="form-grid">
-            <label class="form-field">
-              <span>咨询状态 <em>*</em></span>
-              <select v-model="form.recordStatus">
-                <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-            </label>
+              <FormField label="咨询时间" required>
+                <input
+                  class="bp-form-control"
+                  :value="toInputDateTime(form.consultationTime)"
+                  type="datetime-local"
+                  @input="form.consultationTime = fromInputDateTime(($event.target as HTMLInputElement).value)"
+                >
+              </FormField>
+            </div>
+          </FormSection>
 
-            <label class="form-field">
-              <span>咨询时间 <em>*</em></span>
-              <input
-                :value="toInputDateTime(form.consultationTime)"
-                type="datetime-local"
-                @input="form.consultationTime = fromInputDateTime(($event.target as HTMLInputElement).value)"
-              >
-            </label>
-          </div>
+          <FormField label="咨询摘要" hint="完成咨询时建议填写主要内容与学生状态">
+            <textarea
+              v-model="form.contentSummary"
+              class="bp-form-control"
+              rows="5"
+              placeholder="填写本次咨询的主要内容、学生状态和关键观察"
+            />
+            <div class="bp-char-count">{{ form.contentSummary?.length || 0 }} 字</div>
+          </FormField>
 
-          <label class="form-field form-field--full">
-            <span>咨询摘要</span>
-            <textarea v-model="form.contentSummary" rows="5" placeholder="填写本次咨询的主要内容、学生状态和关键观察" />
-          </label>
-
-          <label class="form-field form-field--full">
-            <span>后续计划</span>
-            <textarea v-model="form.nextPlan" rows="4" placeholder="填写下次咨询重点、建议或需要跟进的事项" />
-          </label>
+          <FormField label="后续计划">
+            <textarea
+              v-model="form.nextPlan"
+              class="bp-form-control"
+              rows="4"
+              placeholder="填写下次咨询重点、建议或需要跟进的事项"
+            />
+          </FormField>
 
           <label class="switch-row">
             <input v-model="form.needClose" type="checkbox" :true-value="1" :false-value="0">
@@ -205,55 +201,17 @@ onMounted(() => {
             <n-button size="small" type="primary" @click="handleGoReport">前往结案报告</n-button>
           </div>
 
-          <div class="form-actions">
-            <n-button type="primary" :loading="submitting" @click="handleSubmit">保存记录</n-button>
+          <ActionBar :sticky="false">
             <n-button @click="handleBack">返回</n-button>
-          </div>
-        </n-card>
-      </template>
+            <n-button type="primary" :loading="submitting" @click="handleSubmit">保存记录</n-button>
+          </ActionBar>
+        </SectionCard>
+      </div>
     </n-spin>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>
-.record-edit-view {
-  padding: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-  color: #4b5563;
-  font-size: 14px;
-}
-
-.form-field em {
-  color: #ef4444;
-  font-style: normal;
-}
-
-.form-field input,
-.form-field select,
-.form-field textarea {
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #fff;
-  font: inherit;
-}
-
-.form-field--full {
-  margin-top: 4px;
-}
-
 .switch-row {
   display: flex;
   align-items: center;
@@ -266,18 +224,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-info-subtle);
+  color: var(--color-info);
 }
 </style>
