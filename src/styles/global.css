@@ -1,9 +1,12 @@
+@import './tokens.css';
+
 :root {
-  color: #18352b;
-  background: #f4f7f1;
-  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  color: var(--color-text-primary);
+  background: var(--color-bg-base);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-normal);
+  font-weight: var(--font-weight-normal);
+  font-size: var(--font-size-base);
 }
 
 * {
@@ -19,6 +22,8 @@ body,
 
 body {
   min-width: 320px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -26,4 +31,24 @@ h2,
 h3,
 p {
   margin: 0;
+}
+
+a {
+  color: var(--color-text-link);
+  text-decoration: none;
+  transition: var(--transition-color);
+}
+
+a:hover {
+  color: var(--color-text-link-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-primary-subtle);
+  color: var(--color-text-primary);
 }
