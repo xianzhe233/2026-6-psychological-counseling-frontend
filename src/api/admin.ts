@@ -1,4 +1,5 @@
 import { http } from './http'
+import { saveBlobResponse } from './download'
 import type { ApiResult } from '@/types/auth'
 
 export interface PageResult<T> {
@@ -676,16 +677,8 @@ export async function getCaseReportDetail(id: number) {
 }
 
 export async function downloadCaseReportWord(id: number): Promise<void> {
-  const response = await http.get(`/admin/case-reports/${id}/export-word`, {
+  const response = await http.get<Blob>(`/admin/case-reports/${id}/export-word`, {
     responseType: 'blob',
   })
-  const contentDisposition = response.headers['content-disposition'] ?? ''
-  const match = contentDisposition.match(/filename\*?=(?:UTF-8''|"?)?"?([^";]+)"?/) 
-  const fileName = match?.[1] ?? '结案报告.docx'
-  const url = URL.createObjectURL(response.data as Blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = decodeURIComponent(fileName)
-  anchor.click()
-  URL.revokeObjectURL(url)
+  await saveBlobResponse(response, '结案报告.docx')
 }
