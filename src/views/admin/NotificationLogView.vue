@@ -2,7 +2,6 @@
 import dayjs from 'dayjs'
 import { h, onMounted, reactive, ref } from 'vue'
 import {
-  NDataTable,
   NDatePicker,
   NForm,
   NFormItem,
@@ -15,11 +14,8 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-import PageHeader from '@/components/common/PageHeader.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
-import PageContainer from '@/components/ui/PageContainer.vue'
-import SearchPanel from '@/components/ui/SearchPanel.vue'
-import SectionCard from '@/components/ui/SectionCard.vue'
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import { getNotifyTypeLabel, pageNotificationLogs } from '@/api/logs'
 import type { NotificationLogQuery, NotificationLogVO } from '@/api/logs'
 
@@ -35,13 +31,7 @@ const searchForm = reactive({
   dateRange: null as [number, number] | null,
 })
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 const notifyTypeOptions = [
   { label: '预约通过', value: 'APPOINTMENT_APPROVED' },
@@ -116,7 +106,7 @@ async function fetchData() {
   try {
     const result = await pageNotificationLogs(buildQuery())
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载通知日志失败')
   } finally {
@@ -124,8 +114,10 @@ async function fetchData() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -137,96 +129,52 @@ function handleReset() {
   handleSearch()
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <PageContainer class="notification-log-view bp-page bp-section-gap">
-    <PageHeader
-      title="通知日志"
-      description="查看系统发送给学生的预约、咨询和结案相关通知记录，支持按类型、状态和时间筛选。"
-    />
-
-    <SearchPanel :loading="loading" @search="handleSearch" @reset="handleReset">
+  <DataTablePage
+    title="通知日志"
+    description="查看系统发送给学生的预约、咨询和结案相关通知记录，支持按类型、状态和时间筛选。"
+    table-title="通知记录"
+    :loading="loading"
+    :columns="columns"
+    :data="data"
+    :pagination="pagination"
+    :row-key="(row: NotificationLogVO) => row.id"
+    empty-title="暂无通知记录"
+    @search="handleSearch"
+    @reset="handleReset"
+    @update:page="onUpdatePage"
+    @update:page-size="onUpdatePageSize"
+  >
+    <template #search>
       <n-form label-placement="top">
         <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
           <n-gi span="1 m:1">
             <n-form-item label="关键词">
-              <n-input
-                v-model:value="searchForm.keyword"
-                placeholder="接收人 / 手机号 / 标题 / 内容"
-                clearable
-                @keyup.enter="handleSearch"
-              />
+              <n-input v-model:value="searchForm.keyword" placeholder="接收人 / 手机号 / 标题 / 内容" clearable @keyup.enter="handleSearch" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:1">
             <n-form-item label="通知类型">
-              <n-select
-                v-model:value="searchForm.notifyType"
-                :options="notifyTypeOptions"
-                clearable
-                placeholder="全部类型"
-              />
+              <n-select v-model:value="searchForm.notifyType" :options="notifyTypeOptions" clearable placeholder="全部类型" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:1">
             <n-form-item label="发送状态">
-              <n-select
-                v-model:value="searchForm.sendStatus"
-                :options="sendStatusOptions"
-                clearable
-                placeholder="全部状态"
-              />
+              <n-select v-model:value="searchForm.sendStatus" :options="sendStatusOptions" clearable placeholder="全部状态" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:2">
             <n-form-item label="时间范围">
-              <n-date-picker
-                v-model:value="searchForm.dateRange"
-                type="daterange"
-                clearable
-                style="width: 100%"
-              />
+              <n-date-picker v-model:value="searchForm.dateRange" type="daterange" clearable style="width: 100%" />
             </n-form-item>
           </n-gi>
         </n-grid>
       </n-form>
-    </SearchPanel>
-
-    <SectionCard title="通知记录">
-      <EmptyState
-        v-if="!loading && data.length === 0"
-        title="暂无通知记录"
-        description="调整筛选条件后重试"
-      />
-      <n-data-table
-        v-else
-        remote
-        :loading="loading"
-        :columns="columns"
-        :data="data"
-        :pagination="pagination"
-        :row-key="row => row.id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </SectionCard>
-  </PageContainer>
+    </template>
+  </DataTablePage>
 </template>

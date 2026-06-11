@@ -4,7 +4,6 @@ import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
   NCard,
-  NDataTable,
   NDatePicker,
   NDescriptions,
   NDescriptionsItem,
@@ -21,8 +20,10 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-import PageHeader from '@/components/common/PageHeader.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import FileDownloadButton from '@/components/ui/FileDownloadButton.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
   downloadCaseReportWord,
   getCaseReportDetail,
@@ -50,13 +51,7 @@ const searchForm = reactive({
   dateRange: null as [number, number] | null,
 })
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 const closeTypeOptions = [
   { label: '正常结案', value: 'NORMAL' },
@@ -127,7 +122,7 @@ const columns: DataTableColumns<AdminCaseReportVO> = [
       return h(NSpace, { size: 'small' }, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => void handleView(row.id) }, { default: () => '查看' }),
-          h(NButton, { size: 'small', type: 'primary', onClick: () => void handleDownload(row.id) }, { default: () => '下载 Word' }),
+          h(FileDownloadButton, { size: 'small', type: 'default', text: '下载 Word', onDownload: () => void handleDownload(row.id) }),
         ],
       })
     },
@@ -182,7 +177,7 @@ async function fetchData() {
   try {
     const result = await pageCaseReports(buildQuery())
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(getErrorMessage(error, '加载结案报告失败'))
   } finally {
@@ -212,8 +207,10 @@ async function handleDownload(id: number) {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -226,17 +223,6 @@ function handleReset() {
   handleSearch()
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchOptions()
   void fetchData()
@@ -244,92 +230,59 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="case-report-manage-view">
-    <PageHeader
+  <div>
+    <DataTablePage
       title="结案报告管理"
       description="查看咨询师已提交的结案报告，支持按学生、咨询师、问题类型、结案类型和日期筛选，并下载 Word。"
-    />
-
-    <n-card title="搜索筛选">
-      <n-form label-placement="top">
-        <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
-          <n-gi span="1 m:1">
-            <n-form-item label="学生关键词">
-              <n-input
-                v-model:value="searchForm.studentKeyword"
-                placeholder="姓名 / 学号"
-                clearable
-                @keyup.enter="handleSearch"
-              />
-            </n-form-item>
-          </n-gi>
-
-          <n-gi span="1 m:1">
-            <n-form-item label="咨询师">
-              <n-select
-                v-model:value="searchForm.counselorId"
-                :options="counselorOptions"
-                clearable
-                placeholder="全部咨询师"
-              />
-            </n-form-item>
-          </n-gi>
-
-          <n-gi span="1 m:1">
-            <n-form-item label="问题类型">
-              <n-select
-                v-model:value="searchForm.problemTypeId"
-                :options="problemTypeOptions"
-                clearable
-                placeholder="全部问题类型"
-              />
-            </n-form-item>
-          </n-gi>
-
-          <n-gi span="1 m:1">
-            <n-form-item label="结案类型">
-              <n-select
-                v-model:value="searchForm.closeType"
-                :options="closeTypeOptions"
-                clearable
-                placeholder="全部结案类型"
-              />
-            </n-form-item>
-          </n-gi>
-
-          <n-gi span="1 m:2">
-            <n-form-item label="提交日期范围">
-              <n-date-picker
-                v-model:value="searchForm.dateRange"
-                type="daterange"
-                clearable
-                style="width: 100%"
-              />
-            </n-form-item>
-          </n-gi>
-        </n-grid>
-      </n-form>
-
-      <div class="search-actions">
-        <n-space>
-          <n-button @click="handleReset">重置</n-button>
-          <n-button type="primary" @click="handleSearch">搜索</n-button>
-        </n-space>
-      </div>
-    </n-card>
-
-    <n-card title="结案报告列表" style="margin-top: 16px">
-      <n-data-table
-        remote
-        :loading="loading"
-        :columns="columns"
-        :data="data"
-        :pagination="pagination"
-        :row-key="row => row.id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+      table-title="结案报告列表"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :row-key="(row: AdminCaseReportVO) => row.id"
+      :scroll-x="1100"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #search>
+        <n-form label-placement="top">
+          <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
+            <n-gi span="1 m:1">
+              <n-form-item label="学生关键词">
+                <n-input
+                  v-model:value="searchForm.studentKeyword"
+                  placeholder="姓名 / 学号"
+                  clearable
+                  @keyup.enter="handleSearch"
+                />
+              </n-form-item>
+            </n-gi>
+            <n-gi span="1 m:1">
+              <n-form-item label="咨询师">
+                <n-select v-model:value="searchForm.counselorId" :options="counselorOptions" clearable placeholder="全部咨询师" />
+              </n-form-item>
+            </n-gi>
+            <n-gi span="1 m:1">
+              <n-form-item label="问题类型">
+                <n-select v-model:value="searchForm.problemTypeId" :options="problemTypeOptions" clearable placeholder="全部问题类型" />
+              </n-form-item>
+            </n-gi>
+            <n-gi span="1 m:1">
+              <n-form-item label="结案类型">
+                <n-select v-model:value="searchForm.closeType" :options="closeTypeOptions" clearable placeholder="全部结案类型" />
+              </n-form-item>
+            </n-gi>
+            <n-gi span="1 m:2">
+              <n-form-item label="提交日期范围">
+                <n-date-picker v-model:value="searchForm.dateRange" type="daterange" clearable style="width: 100%" />
+              </n-form-item>
+            </n-gi>
+          </n-grid>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-drawer v-model:show="showDetail" :width="720">
       <n-drawer-content title="结案报告详情" closable>
@@ -374,15 +327,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.case-report-manage-view {
-  padding: 16px;
-}
-
-.search-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .report-cell {
   display: flex;
   flex-direction: column;

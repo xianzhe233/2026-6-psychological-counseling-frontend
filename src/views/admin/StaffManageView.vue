@@ -2,8 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
-  NDataTable,
   NForm,
   NFormItem,
   NGrid,
@@ -18,6 +16,8 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
   createStaff,
   getStaffTypeLabel,
@@ -107,13 +107,7 @@ const columns: DataTableColumns<StaffVO> = [
 ]
 
 const data = ref<StaffVO[]>([])
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 function resetStaffForm() {
   Object.assign(staffForm, {
@@ -142,7 +136,7 @@ async function fetchData() {
       status: searchForm.status,
     })
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员失败')
   } finally {
@@ -150,8 +144,10 @@ async function fetchData() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -222,56 +218,45 @@ async function handleSubmit() {
   }
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <div class="staff-manage-view">
-    <n-card title="工作人员管理">
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="关键词">
-          <n-input v-model:value="searchForm.keyword" placeholder="工号/姓名/手机号" clearable />
-        </n-form-item>
-        <n-form-item label="类型">
-          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-            <n-button tertiary type="primary" @click="handleAdd">新增工作人员</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="1240"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+  <div>
+    <DataTablePage
+      title="工作人员管理"
+      description="维护初访员、心理助理、咨询师等工作人员档案与每日预约容量。"
+      table-title="工作人员列表"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :scroll-x="1240"
+      :row-key="(row: StaffVO) => row.id"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #header-actions>
+        <n-button type="primary" @click="handleAdd">新增工作人员</n-button>
+      </template>
+      <template #search>
+        <n-form class="admin-search-grid" label-placement="top" :model="searchForm">
+          <n-form-item label="关键词">
+            <n-input v-model:value="searchForm.keyword" placeholder="工号/姓名/手机号" clearable @keyup.enter="handleSearch" />
+          </n-form-item>
+          <n-form-item label="类型">
+            <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable />
+          </n-form-item>
+          <n-form-item label="状态">
+            <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
+          </n-form-item>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingStaff ? '编辑工作人员' : '新增工作人员'" style="width: 720px">
       <n-form :model="staffForm" label-placement="left" label-width="100">
@@ -341,9 +326,3 @@ onMounted(() => {
     </n-modal>
   </div>
 </template>
-
-<style scoped>
-.staff-manage-view {
-  padding: 16px;
-}
-</style>

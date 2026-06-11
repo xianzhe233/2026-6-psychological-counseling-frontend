@@ -2,7 +2,6 @@
 import dayjs from 'dayjs'
 import { h, onMounted, reactive, ref } from 'vue'
 import {
-  NDataTable,
   NDatePicker,
   NForm,
   NFormItem,
@@ -15,11 +14,8 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-import PageHeader from '@/components/common/PageHeader.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
-import PageContainer from '@/components/ui/PageContainer.vue'
-import SearchPanel from '@/components/ui/SearchPanel.vue'
-import SectionCard from '@/components/ui/SectionCard.vue'
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import { pageOperationLogs } from '@/api/logs'
 import type { OperationLogQuery, OperationLogVO } from '@/api/logs'
 
@@ -36,13 +32,7 @@ const searchForm = reactive({
   dateRange: null as [number, number] | null,
 })
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 const moduleOptions = [
   { label: '预约审核', value: '预约审核' },
@@ -133,7 +123,7 @@ async function fetchData() {
   try {
     const result = await pageOperationLogs(buildQuery())
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载操作日志失败')
   } finally {
@@ -141,8 +131,10 @@ async function fetchData() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -155,107 +147,57 @@ function handleReset() {
   handleSearch()
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <PageContainer class="operation-log-view bp-page bp-section-gap">
-    <PageHeader
-      title="操作日志"
-      description="追踪管理员、心理助理和咨询师的关键业务操作，支持按模块、操作类型和结果筛选。"
-    />
-
-    <SearchPanel :loading="loading" @search="handleSearch" @reset="handleReset">
+  <DataTablePage
+    title="操作日志"
+    description="追踪管理员、心理助理和咨询师的关键业务操作，支持按模块、操作类型和结果筛选。"
+    table-title="操作记录"
+    :loading="loading"
+    :columns="columns"
+    :data="data"
+    :pagination="pagination"
+    :row-key="(row: OperationLogVO) => row.id"
+    empty-title="暂无操作记录"
+    @search="handleSearch"
+    @reset="handleReset"
+    @update:page="onUpdatePage"
+    @update:page-size="onUpdatePageSize"
+  >
+    <template #search>
       <n-form label-placement="top">
         <n-grid :cols="1" :x-gap="16" responsive="screen" item-responsive>
           <n-gi span="1 m:1">
             <n-form-item label="操作人">
-              <n-input
-                v-model:value="searchForm.operatorName"
-                placeholder="姓名关键词"
-                clearable
-                @keyup.enter="handleSearch"
-              />
+              <n-input v-model:value="searchForm.operatorName" placeholder="姓名关键词" clearable @keyup.enter="handleSearch" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:1">
             <n-form-item label="模块">
-              <n-select
-                v-model:value="searchForm.moduleName"
-                :options="moduleOptions"
-                clearable
-                placeholder="全部模块"
-              />
+              <n-select v-model:value="searchForm.moduleName" :options="moduleOptions" clearable placeholder="全部模块" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:1">
             <n-form-item label="操作类型">
-              <n-select
-                v-model:value="searchForm.operationType"
-                :options="operationTypeOptions"
-                clearable
-                placeholder="全部类型"
-              />
+              <n-select v-model:value="searchForm.operationType" :options="operationTypeOptions" clearable placeholder="全部类型" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:1">
             <n-form-item label="结果状态">
-              <n-select
-                v-model:value="searchForm.resultStatus"
-                :options="resultStatusOptions"
-                clearable
-                placeholder="全部状态"
-              />
+              <n-select v-model:value="searchForm.resultStatus" :options="resultStatusOptions" clearable placeholder="全部状态" />
             </n-form-item>
           </n-gi>
-
           <n-gi span="1 m:2">
             <n-form-item label="时间范围">
-              <n-date-picker
-                v-model:value="searchForm.dateRange"
-                type="daterange"
-                clearable
-                style="width: 100%"
-              />
+              <n-date-picker v-model:value="searchForm.dateRange" type="daterange" clearable style="width: 100%" />
             </n-form-item>
           </n-gi>
         </n-grid>
       </n-form>
-    </SearchPanel>
-
-    <SectionCard title="操作记录">
-      <EmptyState
-        v-if="!loading && data.length === 0"
-        title="暂无操作记录"
-        description="调整筛选条件后重试"
-      />
-      <n-data-table
-        v-else
-        remote
-        :loading="loading"
-        :columns="columns"
-        :data="data"
-        :pagination="pagination"
-        :row-key="row => row.id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </SectionCard>
-  </PageContainer>
+    </template>
+  </DataTablePage>
 </template>

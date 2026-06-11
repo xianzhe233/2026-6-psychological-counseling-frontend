@@ -2,8 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
-  NDataTable,
   NForm,
   NFormItem,
   NInput,
@@ -17,6 +15,9 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import FormField from '@/components/ui/FormField.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import { createTimeSlot, pageTimeSlots, updateTimeSlot } from '@/api/admin'
 import type { TimeSlotSaveRequest, TimeSlotVO } from '@/api/admin'
 
@@ -68,13 +69,7 @@ const columns: DataTableColumns<TimeSlotVO> = [
 ]
 
 const data = ref<TimeSlotVO[]>([])
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 function resetSlotForm() {
   Object.assign(slotForm, {
@@ -95,7 +90,7 @@ async function fetchData() {
       keyword: searchForm.keyword || undefined,
     })
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载时间段失败')
   } finally {
@@ -103,8 +98,10 @@ async function fetchData() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -175,53 +172,43 @@ async function handleSubmit() {
   }
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <div class="time-slot-manage-view">
-    <n-card title="时间段配置">
-      <template #header-extra>
+  <div>
+    <DataTablePage
+      title="时间段配置"
+      description="配置初访与正式咨询可用的时间段、起止时刻与预约间隔。"
+      table-title="时间段列表"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :scroll-x="760"
+      :row-key="(row: TimeSlotVO) => row.id"
+      empty-title="暂无时间段"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #header-actions>
         <n-button type="primary" @click="handleAdd">新增时间段</n-button>
       </template>
-
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch" style="margin-bottom: 16px">
-        <n-form-item label="关键词">
-          <n-input v-model:value="searchForm.keyword" placeholder="时间段名称" clearable />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="760"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+      <template #search>
+        <FormField label="关键词">
+          <n-input
+            v-model:value="searchForm.keyword"
+            placeholder="时间段名称"
+            clearable
+            @keyup.enter="handleSearch"
+          />
+        </FormField>
+      </template>
+    </DataTablePage>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingSlot ? '编辑时间段' : '新增时间段'" style="width: 560px">
       <n-form :model="slotForm" label-placement="left" label-width="90">
@@ -260,9 +247,3 @@ onMounted(() => {
     </n-modal>
   </div>
 </template>
-
-<style scoped>
-.time-slot-manage-view {
-  padding: 16px;
-}
-</style>

@@ -2,8 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
-  NDataTable,
   NForm,
   NFormItem,
   NGrid,
@@ -18,6 +16,8 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
   createUser,
   disableUser,
@@ -125,13 +125,7 @@ const columns: DataTableColumns<UserVO> = [
 ]
 
 const data = ref<UserVO[]>([])
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 function resetUserForm() {
   Object.assign(userForm, {
@@ -156,7 +150,7 @@ async function fetchData() {
       status: searchForm.status,
     })
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载用户列表失败')
   } finally {
@@ -164,8 +158,10 @@ async function fetchData() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -252,56 +248,45 @@ async function handleSubmit() {
   }
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <div class="user-manage-view">
-    <n-card title="用户管理">
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="关键词">
-          <n-input v-model:value="searchForm.keyword" placeholder="用户名/姓名/手机号/邮箱" clearable />
-        </n-form-item>
-        <n-form-item label="角色">
-          <n-select v-model:value="searchForm.roleCode" :options="roleOptions" placeholder="选择角色" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-            <n-button tertiary type="primary" @click="handleAdd">新增用户</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="1450"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+  <div>
+    <DataTablePage
+      title="用户管理"
+      description="维护系统登录账号、角色分配与启用状态，支持重置默认密码。"
+      table-title="用户列表"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :scroll-x="1450"
+      :row-key="(row: UserVO) => row.id"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #header-actions>
+        <n-button type="primary" @click="handleAdd">新增用户</n-button>
+      </template>
+      <template #search>
+        <n-form class="admin-search-grid" label-placement="top" :model="searchForm">
+          <n-form-item label="关键词">
+            <n-input v-model:value="searchForm.keyword" placeholder="用户名/姓名/手机号/邮箱" clearable @keyup.enter="handleSearch" />
+          </n-form-item>
+          <n-form-item label="角色">
+            <n-select v-model:value="searchForm.roleCode" :options="roleOptions" placeholder="选择角色" clearable />
+          </n-form-item>
+          <n-form-item label="状态">
+            <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
+          </n-form-item>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingUser ? '编辑用户' : '新增用户'" style="width: 640px">
       <n-form :model="userForm" label-placement="left" label-width="80">
@@ -352,9 +337,3 @@ onMounted(() => {
     </n-modal>
   </div>
 </template>
-
-<style scoped>
-.user-manage-view {
-  padding: 16px;
-}
-</style>

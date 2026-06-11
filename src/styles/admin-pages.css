@@ -1,0 +1,26 @@
+/**
+ * 管理员 CRUD 列表页样式（PR-4）
+ */
+
+.admin-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.admin-search-grid .n-form-item {
+  margin-bottom: 0;
+}
+
+.admin-search-grid--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.admin-search-grid--inline .n-form-item {
+  margin-right: 0;
+  margin-bottom: 0;
+}

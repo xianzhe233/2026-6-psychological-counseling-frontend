@@ -123,6 +123,6 @@ const { form, reset, search } = useSearchForm({
 
 - **PR-5（业务域）**：`ConsultationQueueView` 接入 `SearchPanel` + `PriorityBadge`；`ConsultationArrangeView` 接入 `ConflictAlert` + `InfoDescriptions` ✅
 - **PR-3（壳层）**：`DashboardView` 接入 `StatCard`；壳层组件 `RoleBadge` / `DashboardWelcome` / `QuickLinkCard` / `ErrorStatePage` ✅
-- **PR-4（管理员）**：CRUD 页接入 `DataTablePage`
+- **PR-4（管理员）**：CRUD 页接入 `DataTablePage` ✅
 
 接入时仅替换 UI 壳层，不改 API 参数与提交逻辑。
