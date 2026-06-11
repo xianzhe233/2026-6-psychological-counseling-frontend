@@ -14,7 +14,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
       <n-layout-header bordered>
         <app-header />
       </n-layout-header>
-      <n-layout-content content-style="padding: 24px;">
+      <n-layout-content class="main-layout__content" content-style="padding: 24px;">
         <router-view />
       </n-layout-content>
     </n-layout>

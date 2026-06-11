@@ -1,0 +1,181 @@
+/**
+ * 应用壳层样式（PR-3）
+ * 工作台欢迎区、快捷入口、错误页与主布局内容区
+ */
+
+.main-layout__content {
+  min-height: calc(100vh - var(--layout-header-height));
+  background:
+    radial-gradient(circle at top right, var(--color-primary-subtle), transparent 28%),
+    var(--color-bg-base);
+}
+
+.shell-dashboard-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-primary-subtle));
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.shell-dashboard-welcome__eyebrow {
+  display: inline-flex;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-badge);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.shell-dashboard-welcome__title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+}
+
+.shell-dashboard-welcome__description {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.shell-quick-link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.shell-quick-link-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-color), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.shell-quick-link-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.shell-quick-link-card__icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.shell-quick-link-card__label {
+  flex: 1;
+  font-weight: var(--font-weight-semibold);
+}
+
+.shell-quick-link-card__arrow {
+  color: var(--color-text-muted);
+}
+
+.shell-feature-card {
+  height: 100%;
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.shell-feature-card--highlight {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-subtle), var(--shadow-card);
+}
+
+.shell-feature-card__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.shell-feature-card__roles {
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.shell-feature-card__description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.shell-error-page {
+  min-height: calc(100vh - var(--layout-header-height));
+  display: grid;
+  place-items: center;
+  padding: var(--space-8);
+}
+
+.shell-error-page__card {
+  width: min(480px, 100%);
+  padding: var(--space-10) var(--space-8);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.shell-error-page__code {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.shell-error-page__title {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-primary);
+}
+
+.shell-error-page__description {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.app-header__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (max-width: 768px) {
+  .shell-dashboard-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .shell-dashboard-welcome__action {
+    width: 100%;
+  }
+}
