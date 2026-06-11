@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NCard, NForm, NFormItem, NInput, NInputNumber, NRadio, NRadioGroup, NSpace, useMessage } from 'naive-ui'
+import { NButton, NInput, NInputNumber, NRadio, NRadioGroup, useMessage } from 'naive-ui'
+
 import PageHeader from '@/components/common/PageHeader.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import FormField from '@/components/ui/FormField.vue'
+import FormSection from '@/components/ui/FormSection.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import { getLatestFirstVisitForm, saveFirstVisitForm } from '@/api/student'
 import type { FirstVisitForm, FirstVisitFormRequest } from '@/types/student'
 
@@ -100,20 +106,21 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="first-visit-form-view">
+  <PageContainer class="sp-section-gap bp-page">
     <PageHeader title="首访登记表" description="请如实填写，信息仅用于心理咨询服务与预约安排。" />
-    <n-card class="form-card">
-      <n-form label-placement="left" label-width="120">
-        <n-form-item label="主要困扰" required>
+
+    <SectionCard title="基本信息与困扰" subtitle="请尽量完整描述当前困扰与期望">
+      <FormSection title="主要问题" description="简要说明您当前最想解决的问题">
+        <FormField label="主要困扰" required>
           <n-input
             v-model:value="form.mainProblem"
             placeholder="请简要描述您当前最想解决的问题"
             maxlength="100"
             show-count
           />
-        </n-form-item>
+        </FormField>
 
-        <n-form-item label="问题详细描述" required>
+        <FormField label="问题详细描述" required>
           <n-input
             v-model:value="form.problemDescription"
             type="textarea"
@@ -122,9 +129,9 @@ async function handleSubmit() {
             show-count
             :rows="4"
           />
-        </n-form-item>
+        </FormField>
 
-        <n-form-item label="期望获得帮助" required>
+        <FormField label="期望获得帮助" required>
           <n-input
             v-model:value="form.expectedHelp"
             type="textarea"
@@ -133,83 +140,64 @@ async function handleSubmit() {
             show-count
             :rows="3"
           />
-        </n-form-item>
+        </FormField>
+      </FormSection>
 
-        <n-form-item label="情绪评分">
-          <n-space vertical>
+      <FormSection title="自评评分" description="0 分表示影响很小，10 分表示困扰非常明显">
+        <div class="sp-score-grid">
+          <FormField label="情绪评分" hint="0 分表示基本稳定，10 分表示当前困扰非常明显。">
             <n-input-number
               v-model:value="form.moodScore"
               :min="0"
               :max="10"
               placeholder="0-10分"
+              style="width: 100%"
             />
-            <span class="score-hint">0 分表示基本稳定，10 分表示当前困扰非常明显。</span>
-          </n-space>
-        </n-form-item>
+          </FormField>
 
-        <n-form-item label="睡眠评分">
-          <n-space vertical>
+          <FormField label="睡眠评分" hint="0 分表示睡眠影响很小，10 分表示睡眠困扰非常明显。">
             <n-input-number
               v-model:value="form.sleepScore"
               :min="0"
               :max="10"
               placeholder="0-10分"
+              style="width: 100%"
             />
-            <span class="score-hint">0 分表示睡眠影响很小，10 分表示睡眠困扰非常明显。</span>
-          </n-space>
-        </n-form-item>
+          </FormField>
 
-        <n-form-item label="压力评分">
-          <n-space vertical>
+          <FormField label="压力评分" hint="0 分表示压力较小，10 分表示当前压力非常明显。">
             <n-input-number
               v-model:value="form.stressScore"
               :min="0"
               :max="10"
               placeholder="0-10分"
+              style="width: 100%"
             />
-            <span class="score-hint">0 分表示压力较小，10 分表示当前压力非常明显。</span>
-          </n-space>
-        </n-form-item>
+          </FormField>
+        </div>
+      </FormSection>
 
-        <n-form-item label="自伤风险">
+      <FormSection title="风险提示" description="请如实勾选，便于中心及时评估">
+        <FormField label="自伤风险">
           <n-radio-group v-model:value="form.selfHarmFlag">
-            <n-space>
-              <n-radio :value="0">无</n-radio>
-              <n-radio :value="1">有</n-radio>
-            </n-space>
+            <n-radio :value="0">无</n-radio>
+            <n-radio :value="1">有</n-radio>
           </n-radio-group>
-        </n-form-item>
+        </FormField>
 
-        <n-form-item label="紧急求助">
+        <FormField label="紧急求助">
           <n-radio-group v-model:value="form.emergencyFlag">
-            <n-space>
-              <n-radio :value="0">否</n-radio>
-              <n-radio :value="1">是</n-radio>
-            </n-space>
+            <n-radio :value="0">否</n-radio>
+            <n-radio :value="1">是</n-radio>
           </n-radio-group>
-        </n-form-item>
+        </FormField>
+      </FormSection>
 
-        <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleSubmit">
-            {{ existingForm ? '更新并继续' : '提交并继续' }}
-          </n-button>
-        </n-form-item>
-      </n-form>
-    </n-card>
-  </div>
+      <ActionBar :sticky="false" align="end">
+        <n-button type="primary" :loading="loading" @click="handleSubmit">
+          {{ existingForm ? '更新并继续' : '提交并继续' }}
+        </n-button>
+      </ActionBar>
+    </SectionCard>
+  </PageContainer>
 </template>
-
-<style scoped>
-.first-visit-form-view {
-  padding: 24px;
-}
-
-.form-card {
-  margin-top: 24px;
-}
-
-.score-hint {
-  font-size: 12px;
-  color: #999;
-}
-</style>
