@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { NButton, NCard, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
+import { NButton, NCard, NInput, useMessage } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 
+import FormField from '@/components/ui/FormField.vue'
 import { getDefaultRouteByRoles, login } from '@/stores/auth'
 
 const message = useMessage()
@@ -12,7 +13,7 @@ const route = useRoute()
 const form = reactive({
   username: 'admin',
   password: '123456',
-  loading: false
+  loading: false,
 })
 
 async function handleLogin() {
@@ -23,8 +24,6 @@ async function handleLogin() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : getDefaultRouteByRoles(user.roles)
     router.push(redirect)
   } catch (error: any) {
-    // 暂时把真实错误抛到页面，先定位登录失败来源。
-    console.error('login failed', error)
     message.error(error?.response?.data?.message || error?.message || '登录失败')
   } finally {
     form.loading = false
@@ -37,16 +36,40 @@ async function handleLogin() {
     <template #header>
       <div class="login-card__header">
         <h2>登录系统</h2>
+        <p class="login-card__subtitle">使用学号或工号登录心理咨询管理平台</p>
       </div>
     </template>
-    <n-form @submit.prevent="handleLogin">
-      <n-form-item label="用户名">
-        <n-input v-model:value="form.username" placeholder="请输入用户名" />
-      </n-form-item>
-      <n-form-item label="密码">
-        <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="请输入密码" />
-      </n-form-item>
-      <n-button block type="primary" attr-type="submit" :loading="form.loading">登录</n-button>
-    </n-form>
+
+    <form class="login-card__form" @submit.prevent="handleLogin">
+      <FormField label="用户名">
+        <n-input v-model:value="form.username" placeholder="请输入用户名" size="large" />
+      </FormField>
+
+      <FormField label="密码">
+        <n-input
+          v-model:value="form.password"
+          type="password"
+          show-password-on="click"
+          placeholder="请输入密码"
+          size="large"
+        />
+      </FormField>
+
+      <n-button block type="primary" size="large" attr-type="submit" :loading="form.loading">
+        登录
+      </n-button>
+    </form>
+
+    <p class="login-card__footer">
+      首次使用学生端请先完成首访登记与知情同意，再提交初访预约申请。
+    </p>
   </n-card>
 </template>
+
+<style scoped>
+.login-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+</style>

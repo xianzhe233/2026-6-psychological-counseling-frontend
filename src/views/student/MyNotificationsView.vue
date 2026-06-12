@@ -1,0 +1,114 @@
+<script setup lang="ts">
+import { h, onMounted, ref } from 'vue'
+import { NSelect, NTag, useMessage } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
+import { getMyNotifications } from '@/api/student'
+import type { Notification } from '@/types/student'
+
+const message = useMessage()
+const loading = ref(false)
+const data = ref<Notification[]>([])
+
+const notifyTypeOptions = [
+  { label: '全部', value: '' },
+  { label: '预约审核通过', value: 'APPOINTMENT_APPROVED' },
+  { label: '预约驳回通知', value: 'APPOINTMENT_REJECTED' },
+  { label: '预约改约通知', value: 'APPOINTMENT_RESCHEDULED' },
+  { label: '预约撤销通知', value: 'APPOINTMENT_CANCELED' },
+  { label: '咨询安排通知', value: 'CONSULTATION_ARRANGED' },
+  { label: '咨询取消通知', value: 'CONSULTATION_CANCELED' },
+  { label: '系统通知', value: 'SYSTEM' },
+]
+
+const notifyTypeFilter = ref('')
+
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
+
+const columns: DataTableColumns<Notification> = [
+  {
+    title: '类型',
+    key: 'notifyType',
+    width: 150,
+    render(row) {
+      const typeMap: Record<string, { label: string; type: 'success' | 'warning' | 'error' | 'info' | 'default' }> = {
+        APPOINTMENT_APPROVED: { label: '预约审核通过', type: 'success' },
+        APPOINTMENT_REJECTED: { label: '预约驳回通知', type: 'error' },
+        APPOINTMENT_RESCHEDULED: { label: '预约改约通知', type: 'warning' },
+        APPOINTMENT_CANCELED: { label: '预约撤销通知', type: 'default' },
+        CONSULTATION_ARRANGED: { label: '咨询安排通知', type: 'info' },
+        CONSULTATION_CANCELED: { label: '咨询取消通知', type: 'error' },
+        SYSTEM: { label: '系统通知', type: 'default' },
+      }
+      const notifyType = typeMap[row.notifyType] || { label: row.notifyType, type: 'default' }
+      return h(NTag, { type: notifyType.type, size: 'small', round: true, bordered: false }, { default: () => notifyType.label })
+    },
+  },
+  { title: '标题', key: 'title', width: 200, ellipsis: { tooltip: true } },
+  { title: '内容', key: 'content', width: 320, ellipsis: { tooltip: true } },
+  { title: '发送时间', key: 'sendTime', width: 170 },
+]
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await getMyNotifications({
+      pageNum: pagination.page,
+      pageSize: pagination.pageSize,
+      notifyType: notifyTypeFilter.value || undefined,
+    })
+    const result = response.data.data
+    data.value = result?.records || []
+    setTotal(result?.total || 0)
+  } catch (error: any) {
+    message.error(error.response?.data?.message || '获取通知列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
+function applyFilters() {
+  resetPage()
+  fetchData()
+}
+
+function handleResetFilters() {
+  notifyTypeFilter.value = ''
+  applyFilters()
+}
+
+onMounted(() => {
+  fetchData()
+})
+</script>
+
+<template>
+  <DataTablePage
+    title="我的通知"
+    description="查看系统通知和消息"
+    table-title="通知列表"
+    :loading="loading"
+    :columns="columns"
+    :data="data"
+    :pagination="pagination"
+    :scroll-x="900"
+    @search="applyFilters"
+    @reset="handleResetFilters"
+    @update:page="onUpdatePage"
+    @update:page-size="onUpdatePageSize"
+  >
+    <template #search>
+      <n-select
+        v-model:value="notifyTypeFilter"
+        :options="notifyTypeOptions"
+        placeholder="筛选类型"
+        clearable
+        style="width: 180px"
+      />
+    </template>
+  </DataTablePage>
+</template>

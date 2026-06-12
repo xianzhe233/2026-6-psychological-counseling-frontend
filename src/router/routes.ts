@@ -28,10 +28,40 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: '工作台' }
       },
       {
+        path: 'student',
+        name: 'StudentHome',
+        component: () => import('@/views/student/StudentHomeView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '学生首页' }
+      },
+      {
+        path: 'student/first-visit-form',
+        name: 'StudentFirstVisitForm',
+        component: () => import('@/views/student/FirstVisitFormView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '首访登记表' }
+      },
+      {
+        path: 'student/consent',
+        name: 'StudentConsent',
+        component: () => import('@/views/student/ConsentView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '知情同意书' }
+      },
+      {
+        path: 'student/appointment-create',
+        name: 'StudentAppointmentCreate',
+        component: () => import('@/views/student/AppointmentCreateView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '初访预约' }
+      },
+      {
         path: 'student/appointments',
         name: 'StudentAppointments',
         component: () => import('@/views/student/MyAppointmentsView.vue'),
         meta: { requiresAuth: true, roles: ['STUDENT'], title: '我的预约' }
+      },
+      {
+        path: 'student/notifications',
+        name: 'StudentNotifications',
+        component: () => import('@/views/student/MyNotificationsView.vue'),
+        meta: { requiresAuth: true, roles: ['STUDENT'], title: '我的通知' }
       },
       {
         path: 'admin/users',
@@ -70,6 +100,30 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, roles: ['ADMIN'], title: '预约审核' }
       },
       {
+        path: 'admin/statistics',
+        name: 'AdminStatistics',
+        component: () => import('@/views/admin/StatisticsView.vue'),
+        meta: { requiresAuth: true, roles: ['ADMIN'], title: '统计看板' }
+      },
+      {
+        path: 'admin/case-reports',
+        name: 'AdminCaseReports',
+        component: () => import('@/views/admin/CaseReportManageView.vue'),
+        meta: { requiresAuth: true, roles: ['ADMIN'], title: '结案报告管理' }
+      },
+      {
+        path: 'admin/logs/notifications',
+        name: 'AdminNotificationLogs',
+        component: () => import('@/views/admin/NotificationLogView.vue'),
+        meta: { requiresAuth: true, roles: ['ADMIN'], title: '通知日志' }
+      },
+      {
+        path: 'admin/logs/operations',
+        name: 'AdminOperationLogs',
+        component: () => import('@/views/admin/OperationLogView.vue'),
+        meta: { requiresAuth: true, roles: ['ADMIN'], title: '操作日志' }
+      },
+      {
         path: 'interviewer/tasks',
         name: 'InterviewerTasks',
         component: () => import('@/views/interviewer/InterviewTaskView.vue'),
@@ -88,10 +142,40 @@ export const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, roles: ['ASSISTANT'], title: '咨询队列' }
       },
       {
+        path: 'assistant/arrange',
+        name: 'AssistantArrangeEntry',
+        component: () => import('@/views/assistant/ConsultationArrangeView.vue'),
+        meta: { requiresAuth: true, roles: ['ASSISTANT'], title: '正式咨询安排' }
+      },
+      {
+        path: 'assistant/queue/:id/arrange',
+        name: 'AssistantArrange',
+        component: () => import('@/views/assistant/ConsultationArrangeView.vue'),
+        meta: { requiresAuth: true, roles: ['ASSISTANT'], title: '正式咨询安排' }
+      },
+      {
         path: 'counselor/schedules',
         name: 'CounselorSchedules',
         component: () => import('@/views/counselor/MyScheduleView.vue'),
         meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '咨询日程' }
+      },
+      {
+        path: 'counselor/records/:scheduleId',
+        name: 'CounselorRecordEdit',
+        component: () => import('@/views/counselor/ConsultationRecordEditView.vue'),
+        meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '咨询记录录入' }
+      },
+      {
+        path: 'counselor/extensions',
+        name: 'CounselorExtensions',
+        component: () => import('@/views/counselor/ExtensionRequestView.vue'),
+        meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '追加咨询申请' }
+      },
+      {
+        path: 'counselor/case-reports',
+        name: 'CounselorCaseReports',
+        component: () => import('@/views/counselor/CaseReportEditView.vue'),
+        meta: { requiresAuth: true, roles: ['COUNSELOR'], title: '结案报告' }
       }
     ]
   },

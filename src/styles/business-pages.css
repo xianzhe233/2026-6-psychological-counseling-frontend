@@ -1,0 +1,79 @@
+/**
+ * 业务域页面共享样式（PR-5）
+ * 配合 FormField 组件与原生控件混用场景
+ */
+
+.bp-form-control,
+.bp-page .form-field select,
+.bp-page .form-field input,
+.bp-page .form-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-primary);
+  font: inherit;
+  background: var(--color-bg-elevated);
+  transition: var(--transition-color), box-shadow var(--transition-fast);
+}
+
+.bp-form-control:focus,
+.bp-page .form-field select:focus,
+.bp-page .form-field input:focus,
+.bp-page .form-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+
+.bp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.bp-form-grid--responsive {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.bp-preview-card {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+
+.bp-preview-card__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.bp-preview-card__content {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.bp-char-count {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.bp-section-gap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .bp-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

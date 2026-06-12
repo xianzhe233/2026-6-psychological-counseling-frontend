@@ -2,8 +2,6 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
-  NDataTable,
   NForm,
   NFormItem,
   NInput,
@@ -16,6 +14,8 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import { createRoom, pageRooms, updateRoom } from '@/api/admin'
 import type { RoomSaveRequest, RoomVO } from '@/api/admin'
 
@@ -47,7 +47,7 @@ const columns: DataTableColumns<RoomVO> = [
     key: 'status',
     width: 90,
     render(row) {
-      return h(NTag, { type: row.status === 1 ? 'success' : 'error' }, { default: () => row.status === 1 ? '启用' : '停用' })
+      return h(NTag, { type: row.status === 1 ? 'success' : 'error', round: true }, { default: () => row.status === 1 ? '启用' : '停用' })
     },
   },
   { title: '备注', key: 'remark', minWidth: 220 },
@@ -63,13 +63,7 @@ const columns: DataTableColumns<RoomVO> = [
 ]
 
 const data = ref<RoomVO[]>([])
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, bindRemoteTable } = useTablePagination()
 
 function resetRoomForm() {
   Object.assign(roomForm, {
@@ -89,13 +83,15 @@ async function fetchData() {
       pageSize: pagination.pageSize,
     })
     data.value = result.records
-    pagination.itemCount = result.total
+    setTotal(result.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载咨询室失败')
   } finally {
     loading.value = false
   }
 }
+
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
 
 function handleAdd() {
   editingRoom.value = null
@@ -143,41 +139,33 @@ async function handleSubmit() {
   }
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 onMounted(() => {
   void fetchData()
 })
 </script>
 
 <template>
-  <div class="room-manage-view">
-    <n-card title="咨询室管理">
-      <template #header-extra>
+  <div>
+    <DataTablePage
+      title="咨询室管理"
+      description="维护咨询室名称、地点、容量与启用状态，供值班与正式咨询安排引用。"
+      table-title="咨询室列表"
+      :show-search="false"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :scroll-x="900"
+      :row-key="(row: RoomVO) => row.id"
+      empty-title="暂无咨询室"
+      empty-description="点击右上角新增咨询室"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #header-actions>
         <n-button type="primary" @click="handleAdd">新增咨询室</n-button>
       </template>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="900"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+    </DataTablePage>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingRoom ? '编辑咨询室' : '新增咨询室'" style="width: 560px">
       <n-form :model="roomForm" label-placement="left" label-width="90">
@@ -206,9 +194,3 @@ onMounted(() => {
     </n-modal>
   </div>
 </template>
-
-<style scoped>
-.room-manage-view {
-  padding: 16px;
-}
-</style>

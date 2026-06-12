@@ -1,19 +1,13 @@
 <script setup lang="ts">
+import dayjs from 'dayjs'
 import { computed, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
-  NCard,
   NDatePicker,
-  NDescriptions,
-  NDescriptionsItem,
-  NEmpty,
-  NForm,
-  NFormItem,
   NInput,
   NRadio,
   NRadioGroup,
   NSelect,
-  NSpace,
   NSpin,
   useDialog,
   useMessage,
@@ -23,8 +17,15 @@ import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { getInterviewTaskDetail, getProblemTypeOptionList, submitInterviewResult } from '@/api/interviewer'
-import type { InterviewResultRequest, InterviewTaskDetailVO } from '@/api/interviewer'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FormField from '@/components/ui/FormField.vue'
+import FormSection from '@/components/ui/FormSection.vue'
+import InfoDescriptions from '@/components/ui/InfoDescriptions.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
+import { getInterviewTaskDetailReal, getProblemTypeOptionsReal, submitInterviewResultReal } from '@/api/interviewer'
+import type { InterviewResultRequest, RealInterviewTaskDetailVO } from '@/api/interviewer'
 import type { OptionItem } from '@/api/admin'
 
 const route = useRoute()
@@ -35,7 +36,7 @@ const dialog = useDialog()
 const taskId = computed(() => Number(route.params.id))
 const loading = ref(false)
 const submitting = ref(false)
-const taskDetail = ref<InterviewTaskDetailVO | null>(null)
+const taskDetail = ref<RealInterviewTaskDetailVO | null>(null)
 const problemTypeOptions = ref<OptionItem[]>([])
 
 const form = reactive<InterviewResultRequest>({
@@ -63,6 +64,57 @@ const conclusionOptions = [
 const nextActionRequired = computed(() => form.conclusion === 'TRANSFER')
 const readonlyMode = computed(() => taskDetail.value?.appointmentStatus === 'COMPLETED')
 
+const studentInfoItems = computed(() => {
+  const detail = taskDetail.value
+  if (!detail) return []
+
+  return [
+    { label: '预约编号', value: detail.appointmentNo },
+    { label: '学生姓名', value: detail.studentName },
+    { label: '学号', value: detail.studentNo },
+    { label: '院系', value: detail.college || '—' },
+    { label: '联系电话', value: detail.phone || '—' },
+    { label: '预约时间', value: `${detail.appointmentDate} ${detail.slotName}` },
+    { label: '地点', value: detail.roomName || '—' },
+    { label: '风险等级', value: detail.riskLevel },
+    { label: '优先标记', value: detail.priorityFlag === 1 ? '是' : '否' },
+  ]
+})
+
+const firstVisitSummaryItems = computed(() => {
+  const detail = taskDetail.value
+  if (!detail) return []
+
+  return [
+    { label: '主要困扰', value: detail.mainProblem },
+    { label: '期望帮助', value: detail.expectedHelp || '—' },
+    { label: '问题描述', value: detail.problemDescription || '—', span: 2 as const },
+    { label: '风险评分', value: detail.riskScore },
+    { label: '风险等级', value: detail.riskLevel },
+    { label: '情绪困扰', value: `${detail.moodScore}/10` },
+    { label: '睡眠困扰', value: `${detail.sleepScore}/10` },
+    { label: '压力程度', value: `${detail.stressScore}/10` },
+    { label: '自伤倾向', value: detail.selfHarmFlag === 1 ? '是' : '否' },
+    { label: '紧急求助', value: detail.emergencyFlag === 1 ? '是' : '否' },
+  ]
+})
+const displayDateTimeFormat = 'YYYY-MM-DD HH:mm'
+const submitDateTimeFormat = 'YYYY-MM-DD HH:mm:ss'
+
+function formatDisplayDateTime(value?: string) {
+  if (!value) {
+    return ''
+  }
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed.format(displayDateTimeFormat) : value
+}
+
+function formatSubmitDateTime(value: string) {
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed.format(submitDateTimeFormat) : value
+}
+
+// 通过真实后端接口加载任务详情和问题类型选项
 async function fetchTaskDetail() {
   if (!taskId.value) {
     message.error('任务参数无效')
@@ -71,22 +123,22 @@ async function fetchTaskDetail() {
 
   loading.value = true
   try {
-    const [detail, problemTypes] = await Promise.all([
-      getInterviewTaskDetail(taskId.value),
-      getProblemTypeOptionList(),
+    const [detailRes, problemTypesRes] = await Promise.all([
+      getInterviewTaskDetailReal(taskId.value),
+      getProblemTypeOptionsReal(),
     ])
-    taskDetail.value = detail
-    problemTypeOptions.value = problemTypes
+    taskDetail.value = detailRes.data.data
+    problemTypeOptions.value = problemTypesRes.data.data
 
-    if (detail.latestResult) {
-      form.crisisLevel = detail.latestResult.crisisLevel
-      form.problemTypeId = detail.latestResult.problemTypeId
-      form.interviewTime = detail.latestResult.interviewTime
-      form.conclusion = detail.latestResult.conclusion
-      form.summary = detail.latestResult.summary || ''
-      form.nextAction = detail.latestResult.nextAction || ''
-    } else {
-      form.interviewTime = `${detail.appointmentDate} ${detail.startTime}`
+    if (taskDetail.value?.latestResult) {
+      form.crisisLevel = taskDetail.value.latestResult.crisisLevel as InterviewResultRequest['crisisLevel']
+      form.problemTypeId = taskDetail.value.latestResult.problemTypeId
+      form.interviewTime = formatDisplayDateTime(taskDetail.value.latestResult.interviewTime)
+      form.conclusion = taskDetail.value.latestResult.conclusion as InterviewResultRequest['conclusion']
+      form.summary = taskDetail.value.latestResult.summary || ''
+      form.nextAction = taskDetail.value.latestResult.nextAction || ''
+    } else if (taskDetail.value) {
+      form.interviewTime = formatDisplayDateTime(`${taskDetail.value.appointmentDate} ${taskDetail.value.startTime}`)
     }
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载任务详情失败')
@@ -139,10 +191,10 @@ function handleSubmit() {
     onPositiveClick: async () => {
       submitting.value = true
       try {
-        await submitInterviewResult(taskId.value, {
+        await submitInterviewResultReal(taskId.value, {
           crisisLevel: form.crisisLevel,
           problemTypeId: form.problemTypeId,
-          interviewTime: form.interviewTime,
+          interviewTime: formatSubmitDateTime(form.interviewTime),
           conclusion: form.conclusion,
           summary: form.summary,
           nextAction: form.nextAction,
@@ -164,7 +216,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="interview-result-edit-view">
+  <PageContainer class="sp-section-gap bp-page">
     <PageHeader
       title="初访结果录入"
       description="查看学生首访摘要，并提交危机等级、问题类型、初访结论与后续建议。"
@@ -173,90 +225,116 @@ onMounted(() => {
     </PageHeader>
 
     <n-spin :show="loading">
-      <n-empty v-if="!taskDetail && !loading" description="任务不存在或已失效" />
+      <EmptyState
+        v-if="!taskDetail && !loading"
+        title="任务不存在或已失效"
+        description="请从「我的初访任务」重新选择有效任务"
+        action-text="返回列表"
+        @action="handleBack"
+      />
 
-      <template v-else-if="taskDetail">
-        <n-card title="学生信息">
-          <n-descriptions bordered label-placement="left" :column="2">
-            <n-descriptions-item label="预约编号">{{ taskDetail.appointmentNo }}</n-descriptions-item>
-            <n-descriptions-item label="当前状态"><StatusTag :value="taskDetail.appointmentStatus" /></n-descriptions-item>
-            <n-descriptions-item label="学生姓名">{{ taskDetail.studentName }}</n-descriptions-item>
-            <n-descriptions-item label="学号">{{ taskDetail.studentNo }}</n-descriptions-item>
-            <n-descriptions-item label="院系">{{ taskDetail.college || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="联系电话">{{ taskDetail.phone || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="预约时间">{{ taskDetail.appointmentDate }} {{ taskDetail.slotName }}</n-descriptions-item>
-            <n-descriptions-item label="地点">{{ taskDetail.roomName || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="风险等级"><RiskTag :value="taskDetail.riskLevel" /></n-descriptions-item>
-            <n-descriptions-item label="优先标记">{{ taskDetail.priorityFlag === 1 ? '是' : '否' }}</n-descriptions-item>
-          </n-descriptions>
-        </n-card>
+      <div v-else-if="taskDetail" class="sp-section-gap">
+        <SectionCard title="学生信息" subtitle="预约与学生基本资料">
+          <template #extra>
+            <StatusTag :value="taskDetail.appointmentStatus" type="appointment" strong />
+          </template>
+          <InfoDescriptions :items="studentInfoItems" :columns="2">
+            <template #value-7>
+              <RiskTag :value="taskDetail!.riskLevel" />
+            </template>
+          </InfoDescriptions>
+        </SectionCard>
 
-        <n-card title="首访登记摘要" style="margin-top: 16px">
-          <n-descriptions bordered label-placement="left" :column="2">
-            <n-descriptions-item label="主要困扰">{{ taskDetail.mainProblem }}</n-descriptions-item>
-            <n-descriptions-item label="期望帮助">{{ taskDetail.expectedHelp || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="问题描述" :span="2">{{ taskDetail.problemDescription || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="风险评分">{{ taskDetail.riskScore }}</n-descriptions-item>
-            <n-descriptions-item label="风险等级"><RiskTag :value="taskDetail.riskLevel" /></n-descriptions-item>
-            <n-descriptions-item label="情绪困扰">{{ taskDetail.moodScore }}/10</n-descriptions-item>
-            <n-descriptions-item label="睡眠困扰">{{ taskDetail.sleepScore }}/10</n-descriptions-item>
-            <n-descriptions-item label="压力程度">{{ taskDetail.stressScore }}/10</n-descriptions-item>
-            <n-descriptions-item label="自伤倾向">{{ taskDetail.selfHarmFlag === 1 ? '是' : '否' }}</n-descriptions-item>
-            <n-descriptions-item label="紧急求助">{{ taskDetail.emergencyFlag === 1 ? '是' : '否' }}</n-descriptions-item>
-          </n-descriptions>
-        </n-card>
+        <SectionCard title="首访登记摘要" subtitle="学生提交的首访登记表内容">
+          <InfoDescriptions :items="firstVisitSummaryItems" :columns="2">
+            <template #value-4>
+              <RiskTag :value="taskDetail.riskLevel" />
+            </template>
+          </InfoDescriptions>
+        </SectionCard>
 
-        <n-card :title="readonlyMode ? '初访结果（已提交）' : '初访结果表单'" style="margin-top: 16px">
-          <n-form :model="form" label-placement="left" label-width="100">
-            <n-form-item label="危机等级" required>
-              <n-select v-model:value="form.crisisLevel" :options="crisisLevelOptions" :disabled="readonlyMode" placeholder="请选择危机等级" />
-            </n-form-item>
+        <SectionCard
+          :title="readonlyMode ? '初访结果（已提交）' : '初访结果表单'"
+          :subtitle="readonlyMode ? '结果已锁定，仅可查看' : '请根据初访情况填写评估结论'"
+        >
+          <FormSection title="评估信息">
+            <div class="bp-form-grid bp-form-grid--responsive">
+              <FormField label="危机等级" required>
+                <n-select
+                  v-model:value="form.crisisLevel"
+                  :options="crisisLevelOptions"
+                  :disabled="readonlyMode"
+                  placeholder="请选择危机等级"
+                />
+              </FormField>
 
-            <n-form-item label="问题类型" required>
-              <n-select v-model:value="form.problemTypeId" :options="problemTypeOptions" :disabled="readonlyMode" placeholder="请选择问题类型" />
-            </n-form-item>
+              <FormField label="问题类型" required>
+                <n-select
+                  v-model:value="form.problemTypeId"
+                  :options="problemTypeOptions"
+                  :disabled="readonlyMode"
+                  placeholder="请选择问题类型"
+                />
+              </FormField>
 
-            <n-form-item label="初访时间" required>
-              <n-date-picker
-                v-model:formatted-value="form.interviewTime"
-                type="datetime"
-                value-format="yyyy-MM-dd HH:mm"
-                :disabled="readonlyMode"
-                style="width: 100%"
-              />
-            </n-form-item>
+              <FormField label="初访时间" required>
+                <n-date-picker
+                  v-model:formatted-value="form.interviewTime"
+                  type="datetime"
+                  value-format="yyyy-MM-dd HH:mm"
+                  :disabled="readonlyMode"
+                  style="width: 100%"
+                />
+              </FormField>
+            </div>
+          </FormSection>
 
-            <n-form-item label="初访结论" required>
-              <n-radio-group v-model:value="form.conclusion" :disabled="readonlyMode">
-                <n-space>
-                  <n-radio v-for="option in conclusionOptions" :key="option.value" :value="option.value">{{ option.label }}</n-radio>
-                </n-space>
-              </n-radio-group>
-            </n-form-item>
+          <FormField label="初访结论" required>
+            <n-radio-group v-model:value="form.conclusion" :disabled="readonlyMode">
+              <n-radio
+                v-for="option in conclusionOptions"
+                :key="option.value"
+                :value="option.value"
+                style="margin-right: 16px"
+              >
+                {{ option.label }}
+              </n-radio>
+            </n-radio-group>
+          </FormField>
 
-            <n-form-item label="初访摘要">
-              <n-input v-model:value="form.summary" type="textarea" :rows="4" :disabled="readonlyMode" placeholder="请输入初访摘要" />
-            </n-form-item>
+          <FormField label="初访摘要">
+            <n-input
+              v-model:value="form.summary"
+              type="textarea"
+              :rows="4"
+              :disabled="readonlyMode"
+              placeholder="请输入初访摘要"
+            />
+          </FormField>
 
-            <n-form-item label="后续建议" :required="nextActionRequired">
-              <n-input v-model:value="form.nextAction" type="textarea" :rows="4" :disabled="readonlyMode" placeholder="转介送诊时需填写后续建议" />
-            </n-form-item>
+          <FormField label="后续建议" :required="nextActionRequired">
+            <n-input
+              v-model:value="form.nextAction"
+              type="textarea"
+              :rows="4"
+              :disabled="readonlyMode"
+              placeholder="转介送诊时需填写后续建议"
+            />
+          </FormField>
 
-            <n-form-item>
-              <n-space>
-                <n-button v-if="!readonlyMode" type="primary" :loading="submitting" @click="handleSubmit">提交结果</n-button>
-                <n-button @click="handleBack">{{ readonlyMode ? '返回列表' : '取消' }}</n-button>
-              </n-space>
-            </n-form-item>
-          </n-form>
-        </n-card>
-      </template>
+          <ActionBar :sticky="false">
+            <n-button @click="handleBack">{{ readonlyMode ? '返回列表' : '取消' }}</n-button>
+            <n-button
+              v-if="!readonlyMode"
+              type="primary"
+              :loading="submitting"
+              @click="handleSubmit"
+            >
+              提交结果
+            </n-button>
+          </ActionBar>
+        </SectionCard>
+      </div>
     </n-spin>
-  </div>
+  </PageContainer>
 </template>
-
-<style scoped>
-.interview-result-edit-view {
-  padding: 16px;
-}
-</style>

@@ -2,26 +2,46 @@
 import { computed } from 'vue'
 import { NTag } from 'naive-ui'
 
-const props = defineProps<{
-  value: string
-  type?: 'appointment' | 'queue' | 'schedule' | 'report'
-}>()
+import { appointmentStatusMap, resolveStatus } from '@/constants/status-colors'
 
-const mapping: Record<string, { label: string; type: 'default' | 'info' | 'success' | 'warning' | 'error' }> = {
-  PENDING: { label: '待处理', type: 'info' },
-  APPROVED: { label: '已通过', type: 'success' },
-  REJECTED: { label: '已驳回', type: 'error' },
-  CANCELED: { label: '已取消', type: 'default' },
-  COMPLETED: { label: '已完成', type: 'success' },
-  WAITING: { label: '排队中', type: 'warning' },
-  ARRANGED: { label: '已安排', type: 'success' },
-  DRAFT: { label: '草稿', type: 'default' },
-  SUBMITTED: { label: '已提交', type: 'success' }
-}
+const props = withDefaults(
+  defineProps<{
+    value: string
+    type?: 'appointment' | 'queue' | 'schedule' | 'report'
+    size?: 'small' | 'medium' | 'large'
+    bordered?: boolean
+    round?: boolean
+    strong?: boolean
+  }>(),
+  {
+    type: 'appointment',
+    size: 'small',
+    bordered: false,
+    round: true,
+    strong: false,
+  },
+)
 
-const config = computed(() => mapping[props.value] ?? { label: props.value, type: 'default' as const })
+const config = computed(() => resolveStatus(props.value, appointmentStatusMap))
+
+const tagStyle = computed(() => {
+  if (!props.strong || !config.value.background) return undefined
+  return {
+    background: config.value.background,
+    color: config.value.color,
+    borderColor: config.value.color,
+  }
+})
 </script>
 
 <template>
-  <n-tag :type="config.type" round>{{ config.label }}</n-tag>
+  <n-tag
+    :type="config.type"
+    :size="size"
+    :bordered="bordered"
+    :round="round"
+    :style="tagStyle"
+  >
+    {{ config.label }}
+  </n-tag>
 </template>

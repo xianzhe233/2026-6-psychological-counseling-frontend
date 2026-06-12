@@ -2,10 +2,8 @@
 import { h, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
-  NCard,
   NCheckbox,
   NCheckboxGroup,
-  NDataTable,
   NDatePicker,
   NForm,
   NFormItem,
@@ -21,21 +19,22 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
-  batchCreateDutySchedules,
-  createDutySchedule,
-  getRoomOptions,
-  getStaffOptions,
+  batchCreateDutySchedulesReal,
+  createDutyScheduleReal,
+  getRoomOptionsReal,
+  getStaffOptionsReal,
   getStaffTypeLabel,
-  getTimeSlotOptions,
-  pageDutySchedules,
-  updateDutySchedule,
+  getTimeSlotOptionsReal,
+  pageDutySchedulesReal,
+  updateDutyScheduleReal,
 } from '@/api/admin'
 import type {
-  BatchCreateDutySchedulesRequest,
-  DutyScheduleSaveRequest,
   DutyScheduleVO,
   OptionItem,
+  RealDutyScheduleVO,
 } from '@/api/admin'
 
 const message = useMessage()
@@ -44,7 +43,7 @@ const submitting = ref(false)
 const batchSubmitting = ref(false)
 const showModal = ref(false)
 const showBatchModal = ref(false)
-const editingSchedule = ref<DutyScheduleVO | null>(null)
+const editingSchedule = ref<RealDutyScheduleVO | null>(null)
 
 const searchForm = reactive({
   staffType: null as string | null,
@@ -90,7 +89,7 @@ const weekdayOptions = [
   { label: '周四', value: 4 },
   { label: '周五', value: 5 },
   { label: '周六', value: 6 },
-  { label: '周日', value: 0 },
+  { label: '周日', value: 7 },
 ]
 
 const searchStaffOptions = ref<OptionItem[]>([])
@@ -99,7 +98,7 @@ const batchStaffOptions = ref<OptionItem[]>([])
 const slotOptions = ref<OptionItem[]>([])
 const roomOptions = ref<OptionItem[]>([])
 
-const columns: DataTableColumns<DutyScheduleVO> = [
+const columns: DataTableColumns<RealDutyScheduleVO> = [
   { title: '日期', key: 'dutyDate', width: 110 },
   { title: '时间段', key: 'slotName', width: 170 },
   { title: '工作人员', key: 'staffName', width: 120 },
@@ -150,14 +149,8 @@ const columns: DataTableColumns<DutyScheduleVO> = [
   },
 ]
 
-const data = ref<DutyScheduleVO[]>([])
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const data = ref<RealDutyScheduleVO[]>([])
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 function resetScheduleForm() {
   Object.assign(scheduleForm, {
@@ -192,17 +185,17 @@ function syncSelectedStaffId(options: OptionItem[], currentValue: number | null)
 async function fetchData() {
   loading.value = true
   try {
-    const result = await pageDutySchedules({
+    const { data: result } = await pageDutySchedulesReal({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
       staffType: searchForm.staffType ?? undefined,
-      staffId: searchForm.staffId,
+      staffId: searchForm.staffId ?? undefined,
       startDate: searchForm.dateRange?.[0],
       endDate: searchForm.dateRange?.[1],
-      status: searchForm.status,
+      status: searchForm.status ?? undefined,
     })
-    data.value = result.records
-    pagination.itemCount = result.total
+    data.value = result.data.records
+    setTotal(result.data.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载值班安排失败')
   } finally {
@@ -212,7 +205,8 @@ async function fetchData() {
 
 async function loadSearchStaffOptions() {
   try {
-    searchStaffOptions.value = await getStaffOptions(searchForm.staffType ?? undefined)
+    const { data: result } = await getStaffOptionsReal(searchForm.staffType ?? undefined)
+    searchStaffOptions.value = result.data
     searchForm.staffId = syncSelectedStaffId(searchStaffOptions.value, searchForm.staffId)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员选项失败')
@@ -221,7 +215,8 @@ async function loadSearchStaffOptions() {
 
 async function loadFormStaffOptions() {
   try {
-    formStaffOptions.value = await getStaffOptions(scheduleForm.staffType)
+    const { data: result } = await getStaffOptionsReal(scheduleForm.staffType)
+    formStaffOptions.value = result.data
     scheduleForm.staffId = syncSelectedStaffId(formStaffOptions.value, scheduleForm.staffId)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员选项失败')
@@ -230,7 +225,8 @@ async function loadFormStaffOptions() {
 
 async function loadBatchStaffOptions() {
   try {
-    batchStaffOptions.value = await getStaffOptions(batchForm.staffType)
+    const { data: result } = await getStaffOptionsReal(batchForm.staffType)
+    batchStaffOptions.value = result.data
     batchForm.staffId = syncSelectedStaffId(batchStaffOptions.value, batchForm.staffId)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载工作人员选项失败')
@@ -239,7 +235,8 @@ async function loadBatchStaffOptions() {
 
 async function loadSlotOptions() {
   try {
-    slotOptions.value = await getTimeSlotOptions()
+    const { data: result } = await getTimeSlotOptionsReal()
+    slotOptions.value = result.data
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载时间段选项失败')
   }
@@ -247,14 +244,17 @@ async function loadSlotOptions() {
 
 async function loadRoomOptions() {
   try {
-    roomOptions.value = await getRoomOptions()
+    const { data: result } = await getRoomOptionsReal()
+    roomOptions.value = result.data
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载咨询室选项失败')
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -274,7 +274,7 @@ async function handleAdd() {
   await loadFormStaffOptions()
 }
 
-async function handleEdit(record: DutyScheduleVO) {
+async function handleEdit(record: RealDutyScheduleVO) {
   editingSchedule.value = record
   Object.assign(scheduleForm, {
     staffType: record.staffType,
@@ -289,8 +289,8 @@ async function handleEdit(record: DutyScheduleVO) {
   await loadFormStaffOptions()
 }
 
-async function handleToggleStatus(record: DutyScheduleVO) {
-  const payload: DutyScheduleSaveRequest = {
+async function handleToggleStatus(record: RealDutyScheduleVO) {
+  const payload = {
     staffId: record.staffId,
     staffType: record.staffType,
     dutyDate: record.dutyDate,
@@ -301,7 +301,7 @@ async function handleToggleStatus(record: DutyScheduleVO) {
   }
 
   try {
-    await updateDutySchedule(record.id, payload)
+    await updateDutyScheduleReal(record.id, payload)
     message.success(record.status === 1 ? '值班已停用' : '值班已启用')
     await fetchData()
   } catch (error) {
@@ -333,12 +333,12 @@ async function handleSubmit() {
     return
   }
 
-  const payload: DutyScheduleSaveRequest = {
+  const payload = {
     staffId: scheduleForm.staffId,
     staffType: scheduleForm.staffType,
     dutyDate: scheduleForm.dutyDate,
     slotId: scheduleForm.slotId,
-    roomId: scheduleForm.roomId,
+    roomId: scheduleForm.roomId ?? undefined,
     capacity: scheduleForm.capacity,
     status: scheduleForm.status,
   }
@@ -346,16 +346,27 @@ async function handleSubmit() {
   submitting.value = true
   try {
     if (editingSchedule.value) {
-      await updateDutySchedule(editingSchedule.value.id, payload)
+      await updateDutyScheduleReal(editingSchedule.value.id, payload)
       message.success('值班安排已更新')
     } else {
-      await createDutySchedule(payload)
+      await createDutyScheduleReal(payload)
       message.success('值班安排已创建')
     }
     showModal.value = false
     await fetchData()
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : '保存值班安排失败')
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }; message?: string }
+    const errorMsg = err.response?.data?.message || err.message || '保存值班安排失败'
+    if (
+      errorMsg.includes('已存在')
+      || errorMsg.includes('冲突')
+      || errorMsg.includes('已有值班安排')
+      || errorMsg.includes('duplicate')
+    ) {
+      message.error(`该值班安排已存在：${errorMsg}`)
+    } else {
+      message.error(errorMsg)
+    }
   } finally {
     submitting.value = false
   }
@@ -383,21 +394,30 @@ async function handleBatchSubmit() {
     return
   }
 
-  const payload: BatchCreateDutySchedulesRequest = {
+  const payload = {
     staffId: batchForm.staffId,
     staffType: batchForm.staffType,
     startDate: batchForm.dateRange[0],
     endDate: batchForm.dateRange[1],
     weekdays: [...batchForm.weekdays],
     slotIds: [...batchForm.slotIds],
-    roomId: batchForm.roomId,
+    roomId: batchForm.roomId ?? undefined,
     capacity: batchForm.capacity,
   }
 
   batchSubmitting.value = true
   try {
-    const result = await batchCreateDutySchedules(payload)
-    message.success(`已批量创建 ${result.createdCount} 条值班安排`)
+    const { data: result } = await batchCreateDutySchedulesReal(payload)
+    const { createdCount, skippedCount, conflicts } = result.data
+    if (skippedCount > 0) {
+      const firstConflict = conflicts?.[0]
+      const conflictSummary = firstConflict
+        ? `；例如 ${firstConflict.date} 第 ${firstConflict.slotId} 个时间段：${firstConflict.reason}`
+        : ''
+      message.warning(`已创建 ${createdCount} 条，跳过 ${skippedCount} 条冲突记录${conflictSummary}`)
+    } else {
+      message.success(`已批量创建 ${createdCount} 条值班安排`)
+    }
     showBatchModal.value = false
     await fetchData()
   } catch (error) {
@@ -405,17 +425,6 @@ async function handleBatchSubmit() {
   } finally {
     batchSubmitting.value = false
   }
-}
-
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
 }
 
 watch(() => searchForm.staffType, () => {
@@ -443,48 +452,51 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="duty-schedule-view">
-    <n-card title="值班管理">
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="类型">
-          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable />
-        </n-form-item>
-        <n-form-item label="工作人员">
-          <n-select v-model:value="searchForm.staffId" :options="searchStaffOptions" placeholder="选择工作人员" clearable />
-        </n-form-item>
-        <n-form-item label="日期范围">
-          <n-date-picker
-            v-model:formatted-value="searchForm.dateRange"
-            type="daterange"
-            value-format="yyyy-MM-dd"
-            clearable
-          />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-            <n-button tertiary type="primary" @click="handleAdd">新增值班</n-button>
-            <n-button tertiary @click="handleBatchAdd">批量排班</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="1140"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+  <div>
+    <DataTablePage
+      title="值班管理"
+      description="安排初访员与咨询师值班时段，支持单条新增与按周批量排班。"
+      table-title="值班列表"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :scroll-x="1140"
+      :row-key="(row: RealDutyScheduleVO) => row.id"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #header-actions>
+        <n-space>
+          <n-button type="primary" @click="handleAdd">新增值班</n-button>
+          <n-button @click="handleBatchAdd">批量排班</n-button>
+        </n-space>
+      </template>
+      <template #search>
+        <n-form class="admin-search-grid" label-placement="top" :model="searchForm">
+          <n-form-item label="类型">
+            <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable />
+          </n-form-item>
+          <n-form-item label="工作人员">
+            <n-select v-model:value="searchForm.staffId" :options="searchStaffOptions" placeholder="选择工作人员" clearable />
+          </n-form-item>
+          <n-form-item label="日期范围">
+            <n-date-picker
+              v-model:formatted-value="searchForm.dateRange"
+              type="daterange"
+              value-format="yyyy-MM-dd"
+              clearable
+              style="width: 100%"
+            />
+          </n-form-item>
+          <n-form-item label="状态">
+            <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
+          </n-form-item>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingSchedule ? '编辑值班' : '新增值班'" style="width: 640px">
       <n-form :model="scheduleForm" label-placement="left" label-width="90">
@@ -599,9 +611,3 @@ onMounted(async () => {
     </n-modal>
   </div>
 </template>
-
-<style scoped>
-.duty-schedule-view {
-  padding: 16px;
-}
-</style>

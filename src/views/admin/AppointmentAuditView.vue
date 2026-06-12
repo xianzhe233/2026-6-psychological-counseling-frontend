@@ -3,7 +3,6 @@ import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
-  NDataTable,
   NDatePicker,
   NDescriptions,
   NDescriptionsItem,
@@ -22,22 +21,25 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
-  approveAppointment,
-  getAuditAppointmentDetail,
-  getInterviewDutyOptions,
-  markPriority,
-  pageAuditAppointments,
-  rejectAppointment,
-  rescheduleAppointment,
+  approveAppointmentReal,
+  getAuditAppointmentDetailReal,
+  getInterviewDutyOptionsReal,
+  markPriorityReal,
+  pageAuditAppointmentsReal,
+  rejectAppointmentReal,
+  rescheduleAppointmentReal,
 } from '@/api/admin'
 import type {
   AppointmentAuditVO,
   AppointmentDetailVO,
+  DutyScheduleVO,
   InterviewDutyOption,
+  RealAppointmentAuditVO,
 } from '@/api/admin'
 
 const message = useMessage()
@@ -77,13 +79,7 @@ const rescheduleForm = reactive({
   auditRemark: '',
 })
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 const statusOptions = [
   { label: '待处理', value: 'PENDING' },
@@ -166,6 +162,7 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
     title: '状态',
     key: 'appointmentStatus',
     width: 100,
+    fixed: 'right',
     render(row) {
       return h(StatusTag, { value: row.appointmentStatus })
     },
@@ -173,17 +170,17 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
   {
     title: '优先',
     key: 'priorityFlag',
-    width: 80,
+    width: 90,
     render(row) {
       return row.priorityFlag === 1
-        ? h(NTag, { round: true, type: 'warning' }, { default: () => '优先' })
-        : '-'
+        ? h(NTag, { round: true, type: 'warning', size: 'small' }, { default: () => '优先' })
+        : null
     },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 260,
     fixed: 'right',
     render(row) {
       return h(NSpace, { size: 'small', wrapItem: false }, {
@@ -199,7 +196,7 @@ const columns: DataTableColumns<AppointmentAuditVO> = [
             ? h(NButton, { size: 'small', type: 'warning', onClick: () => handleOpenReschedule(row.id) }, { default: () => '改约' })
             : null,
           row.priorityFlag === 0
-            ? h(NButton, { size: 'small', tertiary: true, type: 'info', onClick: () => void handlePriority(row.id) }, { default: () => '优先' })
+            ? h(NButton, { size: 'small', tertiary: true, type: 'info', onClick: () => void handlePriority(row.id) }, { default: () => '标记优先' })
             : null,
         ].filter(Boolean)
       })
@@ -211,31 +208,100 @@ function rowClassName(row: AppointmentAuditVO) {
   return ['HIGH', 'URGENT'].includes(row.riskLevel) ? 'high-risk-row' : ''
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response
+    if (response?.data?.message) {
+      return response.data.message
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  return fallback
+}
+
+
+
+function normalizeRealAppointment(item: RealAppointmentAuditVO): AppointmentDetailVO {
+  return {
+    id: item.id,
+    appointmentNo: item.appointmentNo,
+    studentId: item.studentId,
+    studentNo: item.studentNo,
+    studentName: item.studentName,
+    college: item.college,
+    phone: item.phone,
+    mainProblem: item.mainProblem,
+    problemDescription: item.problemDescription,
+    expectedHelp: item.expectedHelp,
+    moodScore: item.moodScore ?? 0,
+    sleepScore: item.sleepScore ?? 0,
+    stressScore: item.stressScore ?? 0,
+    selfHarmFlag: item.selfHarmFlag ?? 0,
+    emergencyFlag: item.emergencyFlag ?? 0,
+    riskScore: item.riskScore,
+    riskLevel: item.riskLevel as AppointmentDetailVO['riskLevel'],
+    appointmentDate: item.appointmentDate,
+    slotId: item.slotId,
+    slotName: item.slotName,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    interviewerId: item.interviewerId,
+    interviewerName: item.interviewerName,
+    roomId: item.roomId,
+    roomName: item.roomName,
+    dutyScheduleId: item.dutyScheduleId,
+    appointmentStatus: item.appointmentStatus,
+    priorityFlag: item.priorityFlag,
+    auditRemark: item.auditRemark,
+    rejectReason: item.rejectReason || item.cancelReason,
+    auditTime: item.auditTime,
+    auditorName: item.auditAdminName,
+    createTime: item.createTime,
+  }
+}
+
 async function fetchDutyOptions() {
   try {
-    dutyOptions.value = await getInterviewDutyOptions()
+    const { data: result } = await getInterviewDutyOptionsReal()
+    dutyOptions.value = result.data.records.map(item => ({
+      dutyScheduleId: item.id,
+      interviewerId: item.staffId,
+      interviewerName: item.staffName,
+      appointmentDate: item.dutyDate,
+      slotId: item.slotId,
+      slotName: item.slotName,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      roomId: item.roomId,
+      roomName: item.roomName,
+      capacity: item.capacity,
+      reservedCount: item.reservedCount,
+      remaining: item.remaining,
+    }))
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载值班选项失败')
+    message.error(getErrorMessage(error, '加载值班选项失败'))
   }
 }
 
 async function fetchAppointments() {
   loading.value = true
   try {
-    const result = await pageAuditAppointments({
+    const { data: result } = await pageAuditAppointmentsReal({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
       keyword: searchForm.keyword || undefined,
       status: searchForm.status || undefined,
       riskLevel: searchForm.riskLevel || undefined,
-      priorityFlag: searchForm.priorityFlag,
+      priorityFlag: searchForm.priorityFlag || undefined,
       startDate: searchForm.dateRange?.[0],
       endDate: searchForm.dateRange?.[1],
     })
-    appointments.value = result.records
-    pagination.itemCount = result.total
+    appointments.value = result.data.records.map(normalizeRealAppointment)
+    setTotal(result.data.total)
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载预约审核列表失败')
+    message.error(getErrorMessage(error, '加载预约审核列表失败'))
   } finally {
     loading.value = false
   }
@@ -243,15 +309,18 @@ async function fetchAppointments() {
 
 async function handleViewDetail(id: number) {
   try {
-    detail.value = await getAuditAppointmentDetail(id)
+    const { data: result } = await getAuditAppointmentDetailReal(id)
+    detail.value = normalizeRealAppointment(result.data)
     showDetail.value = true
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载预约详情失败')
+    message.error(getErrorMessage(error, '加载预约详情失败'))
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchAppointments)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchAppointments()
 }
 
@@ -262,17 +331,6 @@ function handleReset() {
   searchForm.priorityFlag = null
   searchForm.dateRange = null
   handleSearch()
-}
-
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchAppointments()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.page = 1
-  pagination.pageSize = pageSize
-  void fetchAppointments()
 }
 
 function resetApproveForm() {
@@ -305,15 +363,16 @@ async function handleOpenReschedule(id: number) {
   currentAppointmentId.value = id
   resetRescheduleForm()
   try {
-    const currentDetail = await getAuditAppointmentDetail(id)
+    const { data: result } = await getAuditAppointmentDetailReal(id)
+    const currentDetail = normalizeRealAppointment(result.data)
     if (currentDetail.dutyScheduleId) {
       rescheduleForm.dutyScheduleId = currentDetail.dutyScheduleId
       rescheduleForm.auditRemark = currentDetail.auditRemark || ''
     }
+    showRescheduleModal.value = true
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '加载当前预约信息失败')
+    message.error(getErrorMessage(error, '加载当前预约信息失败'))
   }
-  showRescheduleModal.value = true
 }
 
 async function handlePriority(id: number) {
@@ -324,26 +383,22 @@ async function handlePriority(id: number) {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        await markPriority(id)
+        await markPriorityReal(id)
         message.success('已标记为优先')
         await fetchAppointments()
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '标记优先失败')
+        message.error(getErrorMessage(error, '标记优先失败'))
       }
     },
   })
 }
 
-async function handleApproveConfirm() {
-  if (!currentAppointmentId.value) return
-  if (!selectedApproveDuty.value) {
-    message.warning('请选择分配值班')
-    return
-  }
+async function submitApprove() {
+  if (!currentAppointmentId.value || !selectedApproveDuty.value) return
 
   submitting.value = true
   try {
-    await approveAppointment(currentAppointmentId.value, {
+    await approveAppointmentReal(currentAppointmentId.value, {
       dutyScheduleId: selectedApproveDuty.value.dutyScheduleId,
       interviewerId: selectedApproveDuty.value.interviewerId,
       appointmentDate: selectedApproveDuty.value.appointmentDate,
@@ -355,42 +410,66 @@ async function handleApproveConfirm() {
     showApproveModal.value = false
     await Promise.all([fetchDutyOptions(), fetchAppointments()])
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '审核通过失败')
+    message.error(getErrorMessage(error, '审核通过失败'))
   } finally {
     submitting.value = false
   }
 }
 
-async function handleRejectConfirm() {
+function handleApproveConfirm() {
+  if (!currentAppointmentId.value) return
+  if (!selectedApproveDuty.value) {
+    message.warning('请选择分配值班')
+    return
+  }
+
+  dialog.warning({
+    title: '确认审核通过',
+    content: '确认将该预约通过并分配到当前值班安排吗？',
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: () => submitApprove(),
+  })
+}
+
+async function submitReject() {
+  if (!currentAppointmentId.value) return
+
+  submitting.value = true
+  try {
+    await rejectAppointmentReal(currentAppointmentId.value, { reason: rejectForm.reason.trim() })
+    message.success('预约已驳回')
+    showRejectModal.value = false
+    await fetchAppointments()
+  } catch (error) {
+    message.error(getErrorMessage(error, '驳回失败'))
+  } finally {
+    submitting.value = false
+  }
+}
+
+function handleRejectConfirm() {
   if (!currentAppointmentId.value) return
   if (!rejectForm.reason.trim()) {
     message.warning('请填写驳回原因')
     return
   }
 
-  submitting.value = true
-  try {
-    await rejectAppointment(currentAppointmentId.value, { reason: rejectForm.reason })
-    message.success('预约已驳回')
-    showRejectModal.value = false
-    await fetchAppointments()
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : '驳回失败')
-  } finally {
-    submitting.value = false
-  }
+  dialog.warning({
+    title: '确认驳回预约',
+    content: '驳回后该预约将进入已驳回状态，确认继续吗？',
+    positiveText: '确认驳回',
+    negativeText: '取消',
+    onPositiveClick: () => submitReject(),
+  })
 }
 
-async function handleRescheduleConfirm() {
-  if (!currentAppointmentId.value) return
-  if (!selectedRescheduleDuty.value) {
-    message.warning('请选择新的值班安排')
-    return
-  }
+async function submitReschedule() {
+  if (!currentAppointmentId.value || !selectedRescheduleDuty.value) return
 
   submitting.value = true
   try {
-    await rescheduleAppointment(currentAppointmentId.value, {
+    await rescheduleAppointmentReal(currentAppointmentId.value, {
       dutyScheduleId: selectedRescheduleDuty.value.dutyScheduleId,
       interviewerId: selectedRescheduleDuty.value.interviewerId,
       appointmentDate: selectedRescheduleDuty.value.appointmentDate,
@@ -402,10 +481,26 @@ async function handleRescheduleConfirm() {
     showRescheduleModal.value = false
     await Promise.all([fetchDutyOptions(), fetchAppointments()])
   } catch (error) {
-    message.error(error instanceof Error ? error.message : '改约失败')
+    message.error(getErrorMessage(error, '改约失败'))
   } finally {
     submitting.value = false
   }
+}
+
+function handleRescheduleConfirm() {
+  if (!currentAppointmentId.value) return
+  if (!selectedRescheduleDuty.value) {
+    message.warning('请选择新的值班安排')
+    return
+  }
+
+  dialog.warning({
+    title: '确认改约',
+    content: '确认使用当前选择的值班安排对该预约进行改约吗？',
+    positiveText: '确认改约',
+    negativeText: '取消',
+    onPositiveClick: () => submitReschedule(),
+  })
 }
 
 watch(showApproveModal, (visible) => {
@@ -426,55 +521,49 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="appointment-audit-view">
-    <PageHeader
+  <div>
+    <DataTablePage
       title="初访预约审核"
       description="管理员可按风险与状态筛选预约，并完成通过、驳回、改约、优先等审核操作。"
-    />
-
-    <n-card>
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="关键词">
-          <n-input v-model:value="searchForm.keyword" placeholder="预约编号/姓名/学号/院系" clearable />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable />
-        </n-form-item>
-        <n-form-item label="风险等级">
-          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable />
-        </n-form-item>
-        <n-form-item label="优先标记">
-          <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable />
-        </n-form-item>
-        <n-form-item label="日期范围">
-          <n-date-picker
-            v-model:formatted-value="searchForm.dateRange"
-            type="daterange"
-            value-format="yyyy-MM-dd"
-            clearable
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="appointments"
-        :loading="loading"
-        :pagination="pagination"
-        :row-class-name="rowClassName"
-        :scroll-x="1650"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+      table-title="待审预约列表"
+      :loading="loading"
+      :columns="columns"
+      :data="appointments"
+      :pagination="pagination"
+      :row-class-name="rowClassName"
+      :scroll-x="1900"
+      :row-key="(row: AppointmentAuditVO) => row.id"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #search>
+        <n-form class="admin-search-grid" label-placement="top" :model="searchForm">
+          <n-form-item label="关键词">
+            <n-input v-model:value="searchForm.keyword" placeholder="预约编号/姓名/学号/院系" clearable @keyup.enter="handleSearch" />
+          </n-form-item>
+          <n-form-item label="状态">
+            <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable />
+          </n-form-item>
+          <n-form-item label="风险等级">
+            <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable />
+          </n-form-item>
+          <n-form-item label="优先标记">
+            <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable />
+          </n-form-item>
+          <n-form-item label="日期范围">
+            <n-date-picker
+              v-model:formatted-value="searchForm.dateRange"
+              type="daterange"
+              value-format="yyyy-MM-dd"
+              clearable
+              style="width: 100%"
+            />
+          </n-form-item>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-drawer v-model:show="showDetail" :width="680">
       <n-drawer-content title="预约详情" closable>
@@ -603,15 +692,15 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.appointment-audit-view {
-  padding: 16px;
+:deep(.n-data-table .n-data-table-tr.high-risk-row td:not(.n-data-table-td--fixed-right)) {
+  background-color: rgba(208, 48, 80, 0.06) !important;
 }
 
-:deep(.high-risk-row td) {
-  background-color: rgba(208, 48, 80, 0.06);
+:deep(.n-data-table .n-data-table-tr.high-risk-row:hover td:not(.n-data-table-td--fixed-right)) {
+  background-color: rgba(208, 48, 80, 0.12) !important;
 }
 
-:deep(.high-risk-row:hover td) {
-  background-color: rgba(208, 48, 80, 0.12);
+:deep(.n-data-table .n-data-table-tr.high-risk-row.n-data-table-tr--hover td:not(.n-data-table-td--fixed-right)) {
+  background-color: rgba(208, 48, 80, 0.12) !important;
 }
 </style>
