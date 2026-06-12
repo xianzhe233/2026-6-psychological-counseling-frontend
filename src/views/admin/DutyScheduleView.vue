@@ -2,10 +2,8 @@
 import { h, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
-  NCard,
   NCheckbox,
   NCheckboxGroup,
-  NDataTable,
   NDatePicker,
   NForm,
   NFormItem,
@@ -21,6 +19,8 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
   batchCreateDutySchedulesReal,
   createDutyScheduleReal,
@@ -150,13 +150,7 @@ const columns: DataTableColumns<RealDutyScheduleVO> = [
 ]
 
 const data = ref<RealDutyScheduleVO[]>([])
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 function resetScheduleForm() {
   Object.assign(scheduleForm, {
@@ -201,7 +195,7 @@ async function fetchData() {
       status: searchForm.status ?? undefined,
     })
     data.value = result.data.records
-    pagination.itemCount = result.data.total
+    setTotal(result.data.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载值班安排失败')
   } finally {
@@ -257,8 +251,10 @@ async function loadRoomOptions() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchData()
 }
 
@@ -431,17 +427,6 @@ async function handleBatchSubmit() {
   }
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchData()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  void fetchData()
-}
-
 watch(() => searchForm.staffType, () => {
   void loadSearchStaffOptions()
 })
@@ -467,48 +452,51 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="duty-schedule-view">
-    <n-card title="值班管理">
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="类型">
-          <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item label="工作人员">
-          <n-select v-model:value="searchForm.staffId" :options="searchStaffOptions" placeholder="选择工作人员" clearable style="min-width: 120px" />
-        </n-form-item>
-        <n-form-item label="日期范围">
-          <n-date-picker
-            v-model:formatted-value="searchForm.dateRange"
-            type="daterange"
-            value-format="yyyy-MM-dd"
-            clearable
-          />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-            <n-button tertiary type="primary" @click="handleAdd">新增值班</n-button>
-            <n-button tertiary @click="handleBatchAdd">批量排班</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="1140"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+  <div>
+    <DataTablePage
+      title="值班管理"
+      description="安排初访员与咨询师值班时段，支持单条新增与按周批量排班。"
+      table-title="值班列表"
+      :loading="loading"
+      :columns="columns"
+      :data="data"
+      :pagination="pagination"
+      :scroll-x="1140"
+      :row-key="(row: RealDutyScheduleVO) => row.id"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #header-actions>
+        <n-space>
+          <n-button type="primary" @click="handleAdd">新增值班</n-button>
+          <n-button @click="handleBatchAdd">批量排班</n-button>
+        </n-space>
+      </template>
+      <template #search>
+        <n-form class="admin-search-grid" label-placement="top" :model="searchForm">
+          <n-form-item label="类型">
+            <n-select v-model:value="searchForm.staffType" :options="staffTypeOptions" placeholder="选择类型" clearable />
+          </n-form-item>
+          <n-form-item label="工作人员">
+            <n-select v-model:value="searchForm.staffId" :options="searchStaffOptions" placeholder="选择工作人员" clearable />
+          </n-form-item>
+          <n-form-item label="日期范围">
+            <n-date-picker
+              v-model:formatted-value="searchForm.dateRange"
+              type="daterange"
+              value-format="yyyy-MM-dd"
+              clearable
+              style="width: 100%"
+            />
+          </n-form-item>
+          <n-form-item label="状态">
+            <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="选择状态" clearable />
+          </n-form-item>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingSchedule ? '编辑值班' : '新增值班'" style="width: 640px">
       <n-form :model="scheduleForm" label-placement="left" label-width="90">
@@ -623,9 +611,3 @@ onMounted(async () => {
     </n-modal>
   </div>
 </template>
-
-<style scoped>
-.duty-schedule-view {
-  padding: 16px;
-}
-</style>

@@ -4,6 +4,7 @@ import { NDataTable } from 'naive-ui'
 
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
 import SearchPanel from '@/components/ui/SearchPanel.vue'
 import SectionCard from '@/components/ui/SectionCard.vue'
 
@@ -25,6 +26,7 @@ withDefaults(
     showEmpty?: boolean
     emptyTitle?: string
     emptyDescription?: string
+    rowClassName?: string | ((row: unknown, index: number) => string)
   }>(),
   {
     tableTitle: '数据列表',
@@ -56,7 +58,7 @@ function handleUpdatePageSize(pageSize: number) {
 </script>
 
 <template>
-  <div class="ui-data-table-page">
+  <PageContainer class="ui-data-table-page">
     <PageHeader :title="title" :description="description">
       <slot name="header-actions" />
     </PageHeader>
@@ -95,11 +97,12 @@ function handleUpdatePageSize(pageSize: number) {
         :row-key="rowKey"
         :bordered="bordered"
         :scroll-x="scrollX"
+        :row-class-name="rowClassName"
         @update:page="handleUpdatePage"
         @update:page-size="handleUpdatePageSize"
       />
     </SectionCard>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

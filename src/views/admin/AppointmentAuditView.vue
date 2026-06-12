@@ -3,7 +3,6 @@ import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
-  NDataTable,
   NDatePicker,
   NDescriptions,
   NDescriptionsItem,
@@ -22,9 +21,10 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
-import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import {
   approveAppointmentReal,
   getAuditAppointmentDetailReal,
@@ -79,13 +79,7 @@ const rescheduleForm = reactive({
   auditRemark: '',
 })
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 const statusOptions = [
   { label: '待处理', value: 'PENDING' },
@@ -305,7 +299,7 @@ async function fetchAppointments() {
       endDate: searchForm.dateRange?.[1],
     })
     appointments.value = result.data.records.map(normalizeRealAppointment)
-    pagination.itemCount = result.data.total
+    setTotal(result.data.total)
   } catch (error) {
     message.error(getErrorMessage(error, '加载预约审核列表失败'))
   } finally {
@@ -323,8 +317,10 @@ async function handleViewDetail(id: number) {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchAppointments)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchAppointments()
 }
 
@@ -335,17 +331,6 @@ function handleReset() {
   searchForm.priorityFlag = null
   searchForm.dateRange = null
   handleSearch()
-}
-
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchAppointments()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.page = 1
-  pagination.pageSize = pageSize
-  void fetchAppointments()
 }
 
 function resetApproveForm() {
@@ -536,55 +521,49 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="appointment-audit-view">
-    <PageHeader
+  <div>
+    <DataTablePage
       title="初访预约审核"
       description="管理员可按风险与状态筛选预约，并完成通过、驳回、改约、优先等审核操作。"
-    />
-
-    <n-card>
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="关键词">
-          <n-input v-model:value="searchForm.keyword" placeholder="预约编号/姓名/学号/院系" clearable />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable style="min-width: 120px" />
-        </n-form-item>
-        <n-form-item label="风险等级">
-          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable style="min-width: 120px" />
-        </n-form-item>
-        <n-form-item label="优先标记">
-          <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable style="min-width: 100px" />
-        </n-form-item>
-        <n-form-item label="日期范围">
-          <n-date-picker
-            v-model:formatted-value="searchForm.dateRange"
-            type="daterange"
-            value-format="yyyy-MM-dd"
-            clearable
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="appointments"
-        :loading="loading"
-        :pagination="pagination"
-        :row-class-name="rowClassName"
-        :scroll-x="1900"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </n-card>
+      table-title="待审预约列表"
+      :loading="loading"
+      :columns="columns"
+      :data="appointments"
+      :pagination="pagination"
+      :row-class-name="rowClassName"
+      :scroll-x="1900"
+      :row-key="(row: AppointmentAuditVO) => row.id"
+      @search="handleSearch"
+      @reset="handleReset"
+      @update:page="onUpdatePage"
+      @update:page-size="onUpdatePageSize"
+    >
+      <template #search>
+        <n-form class="admin-search-grid" label-placement="top" :model="searchForm">
+          <n-form-item label="关键词">
+            <n-input v-model:value="searchForm.keyword" placeholder="预约编号/姓名/学号/院系" clearable @keyup.enter="handleSearch" />
+          </n-form-item>
+          <n-form-item label="状态">
+            <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable />
+          </n-form-item>
+          <n-form-item label="风险等级">
+            <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable />
+          </n-form-item>
+          <n-form-item label="优先标记">
+            <n-select v-model:value="searchForm.priorityFlag" :options="priorityOptions" placeholder="全部类型" clearable />
+          </n-form-item>
+          <n-form-item label="日期范围">
+            <n-date-picker
+              v-model:formatted-value="searchForm.dateRange"
+              type="daterange"
+              value-format="yyyy-MM-dd"
+              clearable
+              style="width: 100%"
+            />
+          </n-form-item>
+        </n-form>
+      </template>
+    </DataTablePage>
 
     <n-drawer v-model:show="showDetail" :width="680">
       <n-drawer-content title="预约详情" closable>
@@ -713,10 +692,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.appointment-audit-view {
-  padding: 16px;
-}
-
 :deep(.n-data-table .n-data-table-tr.high-risk-row td:not(.n-data-table-td--fixed-right)) {
   background-color: rgba(208, 48, 80, 0.06) !important;
 }

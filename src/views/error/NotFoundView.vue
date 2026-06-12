@@ -1,6 +1,11 @@
+<script setup lang="ts">
+import ErrorStatePage from '@/components/layout/ErrorStatePage.vue'
+</script>
+
 <template>
-  <div class="blank-state">
-    <h1>404</h1>
-    <p>页面不存在，请检查路由或返回工作台。</p>
-  </div>
+  <ErrorStatePage
+    code="404"
+    title="页面不存在"
+    description="请检查地址是否正确，或返回工作台继续操作。"
+  />
 </template>
