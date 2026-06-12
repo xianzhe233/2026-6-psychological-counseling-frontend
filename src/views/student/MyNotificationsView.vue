@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue'
-import { NCard, NDataTable, NSelect, NTag, useMessage } from 'naive-ui'
+import { h, onMounted, ref } from 'vue'
+import { NSelect, NTag, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import PageHeader from '@/components/common/PageHeader.vue'
+
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import { getMyNotifications } from '@/api/student'
 import type { Notification } from '@/types/student'
 
@@ -23,22 +25,7 @@ const notifyTypeOptions = [
 
 const notifyTypeFilter = ref('')
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  pageSizes: [5, 10, 20],
-  showSizePicker: true,
-  onChange: (page: number) => {
-    pagination.page = page
-    fetchData()
-  },
-  onUpdatePageSize: (pageSize: number) => {
-    pagination.pageSize = pageSize
-    pagination.page = 1
-    fetchData()
-  },
-})
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination()
 
 const columns: DataTableColumns<Notification> = [
   {
@@ -56,7 +43,7 @@ const columns: DataTableColumns<Notification> = [
         SYSTEM: { label: '系统通知', type: 'default' },
       }
       const notifyType = typeMap[row.notifyType] || { label: row.notifyType, type: 'default' }
-      return h(NTag, { type: notifyType.type, size: 'small' }, { default: () => notifyType.label })
+      return h(NTag, { type: notifyType.type, size: 'small', round: true, bordered: false }, { default: () => notifyType.label })
     },
   },
   { title: '标题', key: 'title', width: 200, ellipsis: { tooltip: true } },
@@ -74,7 +61,7 @@ async function fetchData() {
     })
     const result = response.data.data
     data.value = result?.records || []
-    pagination.itemCount = result?.total || 0
+    setTotal(result?.total || 0)
   } catch (error: any) {
     message.error(error.response?.data?.message || '获取通知列表失败')
   } finally {
@@ -82,9 +69,16 @@ async function fetchData() {
   }
 }
 
-function handleTypeChange() {
-  pagination.page = 1
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchData)
+
+function applyFilters() {
+  resetPage()
   fetchData()
+}
+
+function handleResetFilters() {
+  notifyTypeFilter.value = ''
+  applyFilters()
 }
 
 onMounted(() => {
@@ -93,41 +87,28 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="my-notifications-view">
-    <PageHeader title="我的通知" description="查看系统通知和消息" />
-
-    <n-card class="notifications-card">
-      <template #header-extra>
-        <n-select
-          v-model:value="notifyTypeFilter"
-          :options="notifyTypeOptions"
-          placeholder="筛选类型"
-          clearable
-          style="width: 180px"
-          @update:value="handleTypeChange"
-        />
-      </template>
-
-      <n-data-table
-        :columns="columns"
-        :data="data"
-        :loading="loading"
-        :pagination="pagination"
-        :bordered="false"
-        :single-line="false"
-        scroll-x="900"
-        remote
+  <DataTablePage
+    title="我的通知"
+    description="查看系统通知和消息"
+    table-title="通知列表"
+    :loading="loading"
+    :columns="columns"
+    :data="data"
+    :pagination="pagination"
+    :scroll-x="900"
+    @search="applyFilters"
+    @reset="handleResetFilters"
+    @update:page="onUpdatePage"
+    @update:page-size="onUpdatePageSize"
+  >
+    <template #search>
+      <n-select
+        v-model:value="notifyTypeFilter"
+        :options="notifyTypeOptions"
+        placeholder="筛选类型"
+        clearable
+        style="width: 180px"
       />
-    </n-card>
-  </div>
+    </template>
+  </DataTablePage>
 </template>
-
-<style scoped>
-.my-notifications-view {
-  padding: 24px;
-}
-
-.notifications-card {
-  margin-top: 24px;
-}
-</style>

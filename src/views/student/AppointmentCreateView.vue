@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NAlert, NCard, NButton, NSpace, useMessage } from 'naive-ui'
+import { NAlert, NButton, useMessage } from 'naive-ui'
+
 import PageHeader from '@/components/common/PageHeader.vue'
 import AvailableSlotsSelector from '@/components/student/AvailableSlotsSelector.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
+import PageContainer from '@/components/ui/PageContainer.vue'
+import SectionCard from '@/components/ui/SectionCard.vue'
 import { createAppointment } from '@/api/student'
 import type { AvailableSlot } from '@/types/student'
 
@@ -20,18 +24,17 @@ const formId = computed(() => {
 const selectedSlot = ref<AvailableSlot | null>(null)
 const submitting = ref(false)
 
-// 提交预约
 async function handleSubmitAppointment() {
   if (!formId.value) {
     message.error('缺少首访登记表ID')
     return
   }
-  
+
   if (!selectedSlot.value) {
     message.error('请选择预约时间段')
     return
   }
-  
+
   submitting.value = true
   try {
     await createAppointment({
@@ -42,7 +45,7 @@ async function handleSubmitAppointment() {
       interviewerId: selectedSlot.value.interviewerId,
       roomId: selectedSlot.value.roomId,
     })
-    
+
     message.success('预约提交成功')
     router.push('/student/appointments')
   } catch (error: any) {
@@ -54,22 +57,23 @@ async function handleSubmitAppointment() {
 </script>
 
 <template>
-  <div class="appointment-create-view">
+  <PageContainer class="sp-section-gap">
     <PageHeader title="初访预约" description="选择合适的时间段进行预约" />
-    <n-card class="appointment-card">
-      <n-alert v-if="formId" type="success" class="appointment-alert">
+
+    <SectionCard title="选择预约时段" subtitle="请从可用时段中选择适合您的初访时间">
+      <n-alert v-if="formId" type="success" style="margin-bottom: 16px">
         已接收首访登记表编号 {{ formId }}，请继续选择预约时间段。
       </n-alert>
-      <n-alert v-else type="warning" class="appointment-alert">
-        当前未携带 formId。正式联调时应从"知情同意书"页面完成签署后进入此页。
+      <n-alert v-else type="warning" style="margin-bottom: 16px">
+        当前未携带 formId。正式联调时应从「知情同意书」页面完成签署后进入此页。
       </n-alert>
-      
+
       <AvailableSlotsSelector
         v-model="selectedSlot"
         :form-id="formId"
       />
-      
-      <n-space v-if="selectedSlot" justify="end" class="submit-section">
+
+      <ActionBar v-if="selectedSlot" :sticky="false" align="end">
         <n-button
           type="primary"
           :loading="submitting"
@@ -78,25 +82,7 @@ async function handleSubmitAppointment() {
         >
           提交预约
         </n-button>
-      </n-space>
-    </n-card>
-  </div>
+      </ActionBar>
+    </SectionCard>
+  </PageContainer>
 </template>
-
-<style scoped>
-.appointment-create-view {
-  padding: 24px;
-}
-
-.appointment-card {
-  margin-top: 24px;
-}
-
-.appointment-alert {
-  margin-bottom: 16px;
-}
-
-.submit-section {
-  margin-top: 24px;
-}
-</style>

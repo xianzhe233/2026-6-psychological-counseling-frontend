@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue'
-import { NButton, NCard, NDataTable, NDatePicker, NForm, NFormItem, NSelect, NSpace, useMessage } from 'naive-ui'
+import { NButton, NDatePicker, NSelect, NSpace, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useRouter } from 'vue-router'
 
-import PageHeader from '@/components/common/PageHeader.vue'
 import RiskTag from '@/components/common/RiskTag.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import DataTablePage from '@/components/ui/DataTablePage.vue'
+import { useTablePagination } from '@/composables/useTablePagination'
 import { pageInterviewTasksReal } from '@/api/interviewer'
 import type { RealInterviewTaskVO } from '@/api/interviewer'
 
@@ -22,12 +23,8 @@ const searchForm = reactive({
   riskLevel: null as string | null,
 })
 
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
+const { pagination, setTotal, resetPage, bindRemoteTable } = useTablePagination({
   pageSizes: [5, 10, 20],
-  showSizePicker: true,
 })
 
 const statusOptions = [
@@ -69,7 +66,7 @@ const columns: DataTableColumns<RealInterviewTaskVO> = [
     key: 'appointmentStatus',
     width: 100,
     render(row) {
-      return h(StatusTag, { value: row.appointmentStatus })
+      return h(StatusTag, { value: row.appointmentStatus, type: 'appointment' })
     },
   },
   {
@@ -104,7 +101,6 @@ const columns: DataTableColumns<RealInterviewTaskVO> = [
   },
 ]
 
-// 通过真实后端接口加载初访任务列表
 async function fetchTasks() {
   loading.value = true
   try {
@@ -117,7 +113,7 @@ async function fetchTasks() {
       riskLevel: searchForm.riskLevel || undefined,
     })
     tasks.value = result.data.records
-    pagination.itemCount = result.data.total
+    setTotal(result.data.total)
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载初访任务失败')
   } finally {
@@ -125,8 +121,10 @@ async function fetchTasks() {
   }
 }
 
+const { onUpdatePage, onUpdatePageSize } = bindRemoteTable(fetchTasks)
+
 function handleSearch() {
-  pagination.page = 1
+  resetPage()
   void fetchTasks()
 }
 
@@ -137,70 +135,47 @@ function handleReset() {
   handleSearch()
 }
 
-function handlePageChange(page: number) {
-  pagination.page = page
-  void fetchTasks()
-}
-
-function handlePageSizeChange(pageSize: number) {
-  pagination.page = 1
-  pagination.pageSize = pageSize
-  void fetchTasks()
-}
-
 onMounted(() => {
   void fetchTasks()
 })
 </script>
 
 <template>
-  <div class="interview-task-view">
-    <PageHeader
-      title="我的初访任务"
-      description="初访员可按日期、状态、风险等级筛选任务，并进入初访结果录入页面。"
-    />
-
-    <n-card>
-      <n-form inline :model="searchForm" @submit.prevent="handleSearch">
-        <n-form-item label="日期范围">
-          <n-date-picker
-            v-model:formatted-value="searchForm.dateRange"
-            type="daterange"
-            value-format="yyyy-MM-dd"
-            clearable
-          />
-        </n-form-item>
-        <n-form-item label="状态">
-          <n-select v-model:value="searchForm.status" :options="statusOptions" placeholder="全部状态" clearable style="min-width: 120px" />
-        </n-form-item>
-        <n-form-item label="风险等级">
-          <n-select v-model:value="searchForm.riskLevel" :options="riskLevelOptions" placeholder="全部风险" clearable style="min-width: 120px" />
-        </n-form-item>
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" attr-type="submit">搜索</n-button>
-            <n-button @click="handleReset">重置</n-button>
-          </n-space>
-        </n-form-item>
-      </n-form>
-
-      <n-data-table
-        :columns="columns"
-        :data="tasks"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="1100"
-        remote
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
+  <DataTablePage
+    title="我的初访任务"
+    description="初访员可按日期、状态、风险等级筛选任务，并进入初访结果录入页面。"
+    table-title="任务列表"
+    :loading="loading"
+    :columns="columns"
+    :data="tasks"
+    :pagination="pagination"
+    :scroll-x="1100"
+    @search="handleSearch"
+    @reset="handleReset"
+    @update:page="onUpdatePage"
+    @update:page-size="onUpdatePageSize"
+  >
+    <template #search>
+      <n-date-picker
+        v-model:formatted-value="searchForm.dateRange"
+        type="daterange"
+        value-format="yyyy-MM-dd"
+        clearable
       />
-    </n-card>
-  </div>
+      <n-select
+        v-model:value="searchForm.status"
+        :options="statusOptions"
+        placeholder="全部状态"
+        clearable
+        style="min-width: 120px"
+      />
+      <n-select
+        v-model:value="searchForm.riskLevel"
+        :options="riskLevelOptions"
+        placeholder="全部风险"
+        clearable
+        style="min-width: 120px"
+      />
+    </template>
+  </DataTablePage>
 </template>
-
-<style scoped>
-.interview-task-view {
-  padding: 16px;
-}
-</style>

@@ -3,6 +3,7 @@
 @import './business-pages.css';
 @import './shell-layout.css';
 @import './admin-pages.css';
+@import './student-pages.css';
 
 :root {
   color: var(--color-text-primary);
